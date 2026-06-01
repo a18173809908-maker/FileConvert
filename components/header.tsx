@@ -59,11 +59,6 @@ export function Header({ points = 128 }: HeaderProps) {
           <span className="text-xs text-muted-foreground">+</span>
         </div>
 
-        {/* FREE Badge */}
-        <span className="rounded border border-border px-2 py-1 text-xs text-muted-foreground">
-          FREE
-        </span>
-
         {/* Login Button */}
         <button className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           登录

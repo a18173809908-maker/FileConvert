@@ -14,8 +14,11 @@ function generateId() {
 }
 
 export default function HomePage() {
-  // 用户积分
-  const [points] = useState(128)
+  // 用户状态
+  const [points] = useState(120)
+  const [isLoggedIn] = useState(false)
+  const [consecutiveDays] = useState(0)
+  const [hasSignedToday] = useState(false)
   
   // 选中的转换方向
   const [selectedConversion, setSelectedConversion] = useState<string | null>('pdf-docx')
@@ -166,6 +169,18 @@ export default function HomePage() {
     console.log('Sign in')
   }, [])
 
+  // 签到
+  const handleCheckIn = useCallback(() => {
+    // TODO: 实现签到功能
+    console.log('Check in')
+  }, [])
+
+  // 复制邀请链接
+  const handleCopyInviteLink = useCallback(() => {
+    // TODO: 生成并复制邀请链接
+    console.log('Copy invite link')
+  }, [])
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header points={points} />
@@ -203,9 +218,12 @@ export default function HomePage() {
         {/* Right Panel */}
         <AccountPanel
           points={points}
-          freeTriesRemaining={3}
-          maxFreeTries={5}
+          isLoggedIn={isLoggedIn}
+          consecutiveDays={consecutiveDays}
+          hasSignedToday={hasSignedToday}
           onSignIn={handleSignIn}
+          onCheckIn={handleCheckIn}
+          onCopyInviteLink={handleCopyInviteLink}
         />
       </div>
     </div>

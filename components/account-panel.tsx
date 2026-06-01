@@ -1,103 +1,152 @@
 'use client'
 
-import { Gift, Copy, Clock, Zap, List } from 'lucide-react'
+import { Gift, Copy, CalendarCheck, Users, Star, CheckCircle } from 'lucide-react'
+import { useState } from 'react'
+import { POINTS_CONFIG } from '@/lib/conversion-config'
 
 interface AccountPanelProps {
   points: number
-  freeTriesRemaining: number
-  maxFreeTries: number
+  isLoggedIn: boolean
+  consecutiveDays: number
+  hasSignedToday: boolean
   onSignIn: () => void
+  onCheckIn: () => void
+  onCopyInviteLink: () => void
 }
 
 export function AccountPanel({ 
   points, 
-  freeTriesRemaining, 
-  maxFreeTries,
-  onSignIn 
+  isLoggedIn,
+  consecutiveDays,
+  hasSignedToday,
+  onSignIn,
+  onCheckIn,
+  onCopyInviteLink,
 }: AccountPanelProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyLink = () => {
+    onCopyInviteLink()
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <aside className="w-72 shrink-0 space-y-4 p-4">
-      {/* My Account Card */}
+      {/* My Points Card */}
       <div className="rounded-lg border border-border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">我的账户</span>
-          <span className="rounded border border-border px-2 py-0.5 text-xs">FREE</span>
-        </div>
+        <h3 className="mb-3 text-sm font-medium text-muted-foreground">我的积分</h3>
 
         {/* Points Display */}
-        <div className="mb-3 flex items-baseline gap-2">
+        <div className="mb-4 flex items-baseline gap-2">
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-xs text-white">
-            ★
+            <Star className="h-3.5 w-3.5" />
           </div>
           <span className="text-3xl font-bold">{points}</span>
           <span className="text-sm text-muted-foreground">积分</span>
         </div>
 
-        {/* Free Tries */}
-        <div className="mb-1 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">今日免费次数</span>
-          <span>
-            <span className="font-medium">{freeTriesRemaining}</span>
-            <span className="text-muted-foreground"> / {maxFreeTries}</span>
-          </span>
-        </div>
-        <p className="mb-4 text-xs text-muted-foreground">
-          00:00 重置 · 注册再得 50 积分
-        </p>
-
         {/* Sign In Button */}
-        <button
-          onClick={onSignIn}
-          className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Gift className="h-4 w-4" />
-          充值 / 开通会员
-        </button>
+        {isLoggedIn ? (
+          <button
+            onClick={onCheckIn}
+            disabled={hasSignedToday}
+            className={`flex w-full items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-colors ${
+              hasSignedToday 
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
+            }`}
+          >
+            {hasSignedToday ? (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                今日已签到
+              </>
+            ) : (
+              <>
+                <CalendarCheck className="h-4 w-4" />
+                立即签到
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={onSignIn}
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Gift className="h-4 w-4" />
+            登录领取积分
+          </button>
+        )}
       </div>
 
-      {/* Queue Status Card */}
+      {/* Get Points Card */}
       <div className="rounded-lg border border-border bg-card p-4">
-        <h3 className="mb-3 text-sm font-medium">队列状态</h3>
+        <h3 className="mb-3 text-sm font-medium">获取积分</h3>
         
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <List className="h-4 w-4" />
-              <span>当前通道</span>
-            </div>
-            <span className="rounded bg-muted px-2 py-0.5 text-xs">普通队列</span>
+        <div className="space-y-2.5 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">注册赠送</span>
+            <span className="font-medium text-primary">+{POINTS_CONFIG.register} 积分</span>
           </div>
           
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>预计等待</span>
-            </div>
-            <span>~40s</span>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">每日登录</span>
+            <span className="font-medium text-primary">+{POINTS_CONFIG.dailyLogin} 积分</span>
           </div>
           
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Zap className="h-4 w-4" />
-              <span>并发任务</span>
-            </div>
-            <span>1</span>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">每日恢复</span>
+            <span className="font-medium text-primary">+{POINTS_CONFIG.dailyRestore} 积分</span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">连续签到奖励</span>
+            <span className="text-xs text-muted-foreground">第7天最高 +15</span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">邀请好友</span>
+            <span className="font-medium text-primary">+{POINTS_CONFIG.invite} 积分/人</span>
           </div>
         </div>
+
+        {isLoggedIn && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+              <span>已连续签到</span>
+              <span className="font-medium text-foreground">{consecutiveDays} 天</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Pro Upgrade Card */}
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-        <div className="mb-2 flex items-center gap-1">
-          <Zap className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-primary">升级 Pro 享优先队列</span>
+      {/* Invite Card */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">邀请好友</span>
         </div>
         <p className="mb-3 text-xs text-muted-foreground">
-          插队优先处理 · 并发 5 任务 · 单文件支持至 200MB
+          每成功邀请1位用户注册，您将获得 <span className="text-primary font-medium">{POINTS_CONFIG.invite} 积分</span> 奖励
         </p>
-        <button className="w-full rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          查看会员权益
+        <button 
+          onClick={handleCopyLink}
+          disabled={!isLoggedIn}
+          className={`flex w-full items-center justify-center gap-2 rounded-md border py-2 text-sm transition-colors ${
+            isLoggedIn 
+              ? 'border-primary text-primary hover:bg-primary/5'
+              : 'border-border text-muted-foreground cursor-not-allowed'
+          }`}
+        >
+          <Copy className="h-4 w-4" />
+          {copied ? '已复制' : '复制邀请链接'}
         </button>
+        {!isLoggedIn && (
+          <p className="mt-2 text-xs text-muted-foreground text-center">
+            登录后可获取专属邀请链接
+          </p>
+        )}
       </div>
 
       {/* Points Summary Card */}
@@ -106,20 +155,28 @@ export function AccountPanel({
         
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">4 个文件合计</span>
+            <span className="text-muted-foreground">0 个文件合计</span>
             <div className="flex items-center gap-1">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white">
-                ★
+                <Star className="h-3 w-3" />
               </span>
-              <span className="text-lg font-bold">14</span>
+              <span className="text-lg font-bold">0</span>
             </div>
           </div>
           
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">转换后余额</span>
-            <span>114 积分</span>
+            <span>{points} 积分</span>
           </div>
         </div>
+      </div>
+
+      {/* Info Text */}
+      <div className="rounded-md bg-muted/50 p-3">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          文件将在 <span className="text-foreground font-medium">1小时</span> 后自动删除，
+          下载链接同时失效。我们不会长期保存您的文件。
+        </p>
       </div>
     </aside>
   )

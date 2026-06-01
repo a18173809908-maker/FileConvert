@@ -48,11 +48,11 @@ export const FORBIDDEN_FORMATS = [
 export const CONVERSION_CATEGORIES: ConversionCategory[] = [
   {
     id: 'pdf',
-    name: 'PDF转换',
+    name: 'PDF工具',
     icon: 'file-text',
     conversions: [
-      { from: 'pdf', to: 'docx', points: 5, label: 'PDF → DOCX' },
-      { from: 'docx', to: 'pdf', points: 2, label: 'DOCX → PDF' },
+      { from: 'pdf', to: 'docx', points: 5, label: 'PDF → Word' },
+      { from: 'docx', to: 'pdf', points: 2, label: 'Word → PDF' },
       { from: 'pdf', to: 'jpg', points: 5, label: 'PDF → JPG' },
       { from: 'pdf', to: 'png', points: 5, label: 'PDF → PNG' },
       { from: 'jpg', to: 'pdf', points: 2, label: 'JPG → PDF' },
@@ -62,18 +62,8 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     ]
   },
   {
-    id: 'document',
-    name: '文档转换',
-    icon: 'file',
-    conversions: [
-      { from: 'doc', to: 'docx', points: 2, label: 'DOC → DOCX' },
-      { from: 'docx', to: 'doc', points: 2, label: 'DOCX → DOC' },
-      { from: 'html', to: 'pdf', points: 2, label: 'HTML → PDF' },
-    ]
-  },
-  {
     id: 'image',
-    name: '图像转换',
+    name: '图片转换',
     icon: 'image',
     conversions: [
       { from: 'jpg', to: 'png', points: 1, label: 'JPG → PNG' },
@@ -90,14 +80,24 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
   },
   {
     id: 'image-tools',
-    name: '图像工具',
+    name: '图片工具',
     icon: 'settings',
     conversions: [
       { from: 'image', to: 'compress', points: 1, label: '图片压缩' },
-      { from: 'image', to: 'resize', points: 1, label: '尺寸调整' },
+      { from: 'image', to: 'resize', points: 1, label: '图片尺寸调整' },
       { from: 'image', to: 'crop', points: 1, label: '图片裁剪' },
       { from: 'image', to: 'rotate', points: 1, label: '图片旋转' },
       { from: 'image', to: 'watermark', points: 2, label: '图片去水印' },
+    ]
+  },
+  {
+    id: 'document',
+    name: '文档工具',
+    icon: 'file',
+    conversions: [
+      { from: 'doc', to: 'docx', points: 2, label: 'DOC → DOCX' },
+      { from: 'docx', to: 'doc', points: 2, label: 'DOCX → DOC' },
+      { from: 'html', to: 'pdf', points: 2, label: 'HTML → PDF' },
     ]
   },
   {

@@ -97,7 +97,7 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
           </button>
         </p>
         <p className="mb-4 text-sm text-muted-foreground">
-          支持一次拖入多个文件 · 文件全程加密传输，转换后24小时自动删除
+          支持一次拖入多个文件 · 文件全程加密传输，转换后 <span className="text-foreground">1小时</span> 自动删除
         </p>
 
         {/* Format Tags */}
@@ -119,8 +119,42 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
 
         {/* File Limits */}
         <p className="mt-4 text-xs text-muted-foreground">
-          免费单文件 ≤ 10MB · 会员至 200MB · 免登录试用
+          单文件 ≤ 10MB · 支持 PDF、DOC、图片等 30+ 种格式
         </p>
+      </div>
+
+      {/* Features List */}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          免费使用
+        </span>
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          无需安装软件
+        </span>
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          文件1小时自动删除
+        </span>
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          支持30种常用格式
+        </span>
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          积分签到获取
+        </span>
       </div>
 
       {/* Format Selector */}

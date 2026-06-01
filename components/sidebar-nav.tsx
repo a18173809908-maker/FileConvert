@@ -110,10 +110,10 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
         {/* Info Text */}
         <div className="mt-6 rounded-md bg-muted p-3">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            一期开放 <span className="text-foreground font-medium">PDF</span>、
+            支持 <span className="text-foreground font-medium">PDF</span>、
+            <span className="text-foreground font-medium">图片</span>、
             <span className="text-foreground font-medium">文档</span>、
-            <span className="text-foreground font-medium">图像</span> 三类，
-            覆盖最常用的转换需求。
+            <span className="text-foreground font-medium">电子书</span> 等30+种格式转换。
           </p>
         </div>
       </div>
