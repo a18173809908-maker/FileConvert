@@ -102,22 +102,6 @@ export function ConversionQueue({
           >
             清空
           </button>
-          <button
-            onClick={onDownloadAll}
-            disabled={completedCount === 0}
-            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
-          >
-            <Download className="h-4 w-4" />
-            全部下载
-          </button>
-          <button
-            onClick={onStartConversion}
-            disabled={queuedCount === 0}
-            className="flex items-center gap-1 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Play className="h-4 w-4" />
-            开始转换
-          </button>
         </div>
       </div>
 
@@ -192,6 +176,15 @@ export function ConversionQueue({
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-1">
+                {item.status === 'queued' && (
+                  <button
+                    onClick={() => onStartConversion()}
+                    className="flex h-8 items-center gap-1 rounded bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Play className="h-3.5 w-3.5" />
+                    转换
+                  </button>
+                )}
                 {item.status === 'completed' && (
                   <button className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90">
                     <Download className="h-4 w-4" />
@@ -228,22 +221,12 @@ export function ConversionQueue({
             <span>·</span>
             <span>预计消耗 <span className="text-primary font-medium">{totalPoints}</span> 积分</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onAddFiles}
-              className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
-            >
-              添加文件
-            </button>
-            <button
-              onClick={onStartConversion}
-              disabled={queuedCount === 0}
-              className="flex items-center gap-1 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              <Play className="h-4 w-4" />
-              开始全部转换
-            </button>
-          </div>
+          <button
+            onClick={onAddFiles}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+          >
+            添加文件
+          </button>
         </div>
       )}
     </div>

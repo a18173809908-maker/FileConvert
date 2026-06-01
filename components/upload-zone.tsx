@@ -30,31 +30,31 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
     setIsDragging(false)
     
     const files = Array.from(e.dataTransfer.files)
-    const validFiles = files.filter(file => {
+    // 只取第一个文件，不支持批量
+    const file = files[0]
+    if (file) {
       const ext = getFileExtension(file.name)
-      return isFormatAllowed(ext) && isFileSizeAllowed(file.size, ext)
-    })
-    
-    if (validFiles.length > 0) {
-      onFilesSelected(validFiles)
+      if (isFormatAllowed(ext) && isFileSizeAllowed(file.size, ext)) {
+        onFilesSelected([file])
+      }
     }
   }, [onFilesSelected])
 
   const handleFileSelect = useCallback(() => {
     const input = document.createElement('input')
     input.type = 'file'
-    input.multiple = true
+    input.multiple = false  // 禁止多选
     input.accept = INPUT_FORMAT_TAGS.map(f => `.${f.toLowerCase()}`).join(',')
     
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || [])
-      const validFiles = files.filter(file => {
+      // 只取第一个文件
+      const file = files[0]
+      if (file) {
         const ext = getFileExtension(file.name)
-        return isFormatAllowed(ext) && isFileSizeAllowed(file.size, ext)
-      })
-      
-      if (validFiles.length > 0) {
-        onFilesSelected(validFiles)
+        if (isFormatAllowed(ext) && isFileSizeAllowed(file.size, ext)) {
+          onFilesSelected([file])
+        }
       }
     }
     
@@ -97,7 +97,7 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
           </button>
         </p>
         <p className="mb-4 text-sm text-muted-foreground">
-          支持一次拖入多个文件 · 文件全程加密传输，转换后 <span className="text-foreground">1小时</span> 自动删除
+          每次处理一个文件 · 文件全程加密传输，转换后 <span className="text-foreground">1小时</span> 自动删除
         </p>
 
         {/* Format Tags */}
