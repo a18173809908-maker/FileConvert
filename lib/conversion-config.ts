@@ -87,7 +87,6 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
       { from: 'image', to: 'resize', points: 1, label: '图片尺寸调整' },
       { from: 'image', to: 'crop', points: 1, label: '图片裁剪' },
       { from: 'image', to: 'rotate', points: 1, label: '图片旋转' },
-      { from: 'image', to: 'watermark', points: 2, label: '图片去水印' },
     ]
   },
   {
