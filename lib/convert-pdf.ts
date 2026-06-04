@@ -1,11 +1,20 @@
-// 浏览器端 PDF → 图片，使用 pdfjs 渲染到 Canvas
-import * as pdfjsLib from 'pdfjs-dist'
+// 浏览器端 PDF → 图片：动态加载 pdfjs，避免 SSR 阶段引用 DOMMatrix 等浏览器 API
 import JSZip from 'jszip'
 
-// pdfjs 的 worker 通过 CDN 加载，避免 Next.js 构建处理 worker 文件
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
+let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null
+
+async function loadPdfjs() {
+  if (typeof window === 'undefined') {
+    throw new Error('pdfjs 只能在浏览器环境运行')
+  }
+  if (!pdfjsPromise) {
+    pdfjsPromise = import('pdfjs-dist').then((mod) => {
+      mod.GlobalWorkerOptions.workerSrc =
+        `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${mod.version}/pdf.worker.min.mjs`
+      return mod
+    })
+  }
+  return pdfjsPromise
 }
 
 export async function pdfToImageBlob(
@@ -13,6 +22,7 @@ export async function pdfToImageBlob(
   format: 'jpg' | 'jpeg' | 'png',
   scale = 2,
 ): Promise<Blob> {
+  const pdfjsLib = await loadPdfjs()
   const data = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data }).promise
 
@@ -49,7 +59,6 @@ export async function pdfToImageBlob(
 
   if (blobs.length === 1) return blobs[0]
 
-  // 多页 PDF：打包成 ZIP
   const zip = new JSZip()
   blobs.forEach((b, idx) => zip.file(`page-${String(idx + 1).padStart(3, '0')}.${ext}`, b))
   return await zip.generateAsync({ type: 'blob' })
