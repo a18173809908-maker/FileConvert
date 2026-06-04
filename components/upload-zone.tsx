@@ -3,8 +3,33 @@
 import { useCallback, useState } from 'react'
 import { Upload, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { INPUT_FORMAT_TAGS, OUTPUT_FORMATS, isFormatAllowed, isFileSizeAllowed, getFileExtension } from '@/lib/conversion-config'
+import { toast } from 'sonner'
+import { INPUT_FORMAT_TAGS, OUTPUT_FORMATS, FILE_SIZE_LIMITS, isFormatAllowed, isFileSizeAllowed, getFileExtension, formatFileSize } from '@/lib/conversion-config'
 import { SettingsDialog } from '@/components/settings-dialog'
+
+function validateAndReport(file: File): boolean {
+  const ext = getFileExtension(file.name)
+  if (!ext) {
+    toast.error('无法识别文件类型', { description: file.name })
+    return false
+  }
+  if (!isFormatAllowed(ext)) {
+    toast.error(`不支持的格式: .${ext}`, { description: '请上传 PDF、图片、文档等常见格式' })
+    return false
+  }
+  if (!isFileSizeAllowed(file.size, ext)) {
+    const limit =
+      ['pdf', 'epub'].includes(ext) ? FILE_SIZE_LIMITS.pdf :
+      ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'svg'].includes(ext) ? FILE_SIZE_LIMITS.image :
+      ['doc', 'docx'].includes(ext) ? FILE_SIZE_LIMITS.doc :
+      FILE_SIZE_LIMITS.default
+    toast.error('文件超过大小限制', {
+      description: `${file.name} (${formatFileSize(file.size)}) · 上限 ${limit} MB`,
+    })
+    return false
+  }
+  return true
+}
 
 interface UploadZoneProps {
   selectedFrom: string
@@ -25,11 +50,8 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || [])
       const file = files[0]
-      if (file) {
-        const ext = getFileExtension(file.name)
-        if (isFormatAllowed(ext) && isFileSizeAllowed(file.size, ext)) {
-          onFilesSelected([file])
-        }
+      if (file && validateAndReport(file)) {
+        onFilesSelected([file])
       }
     }
     input.click()
@@ -74,11 +96,8 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
       const files = Array.from((e.target as HTMLInputElement).files || [])
       // 只取第一个文件
       const file = files[0]
-      if (file) {
-        const ext = getFileExtension(file.name)
-        if (isFormatAllowed(ext) && isFileSizeAllowed(file.size, ext)) {
-          onFilesSelected([file])
-        }
+      if (file && validateAndReport(file)) {
+        onFilesSelected([file])
       }
     }
     
@@ -143,7 +162,7 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
 
         {/* File Limits */}
         <p className="mt-4 text-xs text-muted-foreground">
-          单文件 ≤ 10MB · 支持 PDF、DOC、图片等 30+ 种格式
+          PDF ≤ {FILE_SIZE_LIMITS.pdf}MB · 其他 ≤ {FILE_SIZE_LIMITS.image}MB · 支持 30+ 种格式
         </p>
       </div>
 

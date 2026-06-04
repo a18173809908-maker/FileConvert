@@ -25,11 +25,11 @@ export const POINTS_CONFIG = {
 
 // 文件大小限制 (MB)
 export const FILE_SIZE_LIMITS = {
-  pdf: 10,
-  image: 10,
-  epub: 10,
-  doc: 10,
-  default: 10,
+  pdf: 50,
+  image: 20,
+  epub: 20,
+  doc: 20,
+  default: 20,
 }
 
 // 允许的文件格式
