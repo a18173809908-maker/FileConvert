@@ -1,5 +1,5 @@
 import { Header } from '@/components/header'
-import { CONVERSION_CATEGORIES, POINTS_CONFIG } from '@/lib/conversion-config'
+import { CONVERSION_CATEGORIES, POINTS_CONFIG, isConversionSupported } from '@/lib/conversion-config'
 import Link from 'next/link'
 
 export default function FormatsPage() {
@@ -20,18 +20,32 @@ export default function FormatsPage() {
               <div key={category.id} className="rounded-lg border border-border bg-card p-6">
                 <h2 className="mb-4 text-lg font-semibold">{category.name}</h2>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {category.conversions.map((conv) => (
-                    <Link
-                      key={`${conv.from}-${conv.to}`}
-                      href={`/?conversion=${conv.from}-${conv.to}`}
-                      className="flex items-center justify-between rounded-md border border-border px-4 py-3 text-sm transition-colors hover:border-primary/50 hover:bg-accent"
-                    >
-                      <span>{conv.label}</span>
-                      <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white">
-                        ★
-                      </span>
-                    </Link>
-                  ))}
+                  {category.conversions.map((conv) => {
+                    const supported = isConversionSupported(conv.from, conv.to)
+                    return (
+                      <Link
+                        key={`${conv.from}-${conv.to}`}
+                        href={`/?conversion=${conv.from}-${conv.to}`}
+                        title={supported ? undefined : '暂未支持，敬请期待'}
+                        className={
+                          supported
+                            ? 'group flex items-center justify-between rounded-md border border-border px-4 py-3 text-sm transition-colors hover:border-primary/50 hover:bg-accent'
+                            : 'group flex items-center justify-between rounded-md border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground/70 transition-colors hover:bg-muted/50'
+                        }
+                      >
+                        <span className="truncate">{conv.label}</span>
+                        {supported ? (
+                          <span className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs text-white">
+                            ★
+                          </span>
+                        ) : (
+                          <span className="ml-2 shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                            敬请期待
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
                 </div>
               </div>
             ))}

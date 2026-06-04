@@ -145,6 +145,31 @@ export interface QueueItem {
   errorMessage?: string
 }
 
+// 当前真正能跑通的转换对（浏览器 Canvas + pdfjs + 服务端 sharp/pdf-lib/mammoth/docx/unpdf）
+// 与 lib/convert.ts 和 lib/server/converters.ts 保持同步
+const SUPPORTED_PAIRS: ReadonlyArray<readonly [string, string]> = [
+  // 图片互转（Canvas）
+  ['jpg', 'png'], ['jpg', 'webp'], ['jpg', 'jpeg'],
+  ['jpeg', 'png'], ['jpeg', 'webp'], ['jpeg', 'jpg'],
+  ['png', 'jpg'], ['png', 'jpeg'], ['png', 'webp'],
+  ['webp', 'jpg'], ['webp', 'jpeg'], ['webp', 'png'],
+  ['bmp', 'jpg'], ['bmp', 'jpeg'], ['bmp', 'png'], ['bmp', 'webp'],
+  ['gif', 'jpg'], ['gif', 'jpeg'], ['gif', 'png'], ['gif', 'webp'],
+  // PDF → 图片（pdfjs）
+  ['pdf', 'jpg'], ['pdf', 'jpeg'], ['pdf', 'png'],
+  // 服务端
+  ['txt', 'pdf'], ['txt', 'docx'],
+  ['docx', 'txt'], ['pdf', 'txt'],
+  ['jpg', 'pdf'], ['jpeg', 'pdf'], ['png', 'pdf'], ['webp', 'pdf'],
+  ['svg', 'png'], ['svg', 'jpg'],
+]
+
+export function isConversionSupported(from: string, to: string): boolean {
+  const f = from.toLowerCase()
+  const t = to.toLowerCase()
+  return SUPPORTED_PAIRS.some(([a, b]) => a === f && b === t)
+}
+
 // 根据文件扩展名获取积分消耗
 export function getConversionPoints(from: string, to: string): number {
   for (const category of CONVERSION_CATEGORIES) {

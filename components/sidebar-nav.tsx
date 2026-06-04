@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { FileText, Image, Settings, PenTool, BookOpen, ChevronDown, ChevronRight, Flame } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { CONVERSION_CATEGORIES } from '@/lib/conversion-config'
+import { CONVERSION_CATEGORIES, isConversionSupported } from '@/lib/conversion-config'
 
 const iconMap: Record<string, React.ElementType> = {
   'file-text': FileText,
@@ -78,25 +78,38 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
                       const conversionId = `${conversion.from}-${conversion.to}`
                       const isSelected = selectedConversion === conversionId
                       const isHot = index === 0 && category.id === 'pdf'
+                      const supported = isConversionSupported(conversion.from, conversion.to)
 
                       return (
                         <button
                           key={conversionId}
                           onClick={() => onSelectConversion(conversionId, conversion.from, conversion.to)}
+                          title={supported ? undefined : '暂未支持，敬请期待'}
                           className={cn(
                             "flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm transition-colors",
                             isSelected
                               ? "bg-foreground text-background"
-                              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                              : supported
+                                ? "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                : "text-muted-foreground/50 hover:bg-accent/50"
                           )}
                         >
-                          <span>{conversion.label}</span>
-                          {isHot && (
-                            <span className="flex items-center gap-0.5 rounded bg-primary/10 px-1 py-0.5 text-xs text-primary">
-                              <Flame className="h-3 w-3" />
-                              热
-                            </span>
-                          )}
+                          <span className={cn(!supported && !isSelected && "line-through decoration-muted-foreground/30")}>
+                            {conversion.label}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            {!supported && (
+                              <span className="rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
+                                敬请期待
+                              </span>
+                            )}
+                            {isHot && supported && (
+                              <span className="flex items-center gap-0.5 rounded bg-primary/10 px-1 py-0.5 text-xs text-primary">
+                                <Flame className="h-3 w-3" />
+                                热
+                              </span>
+                            )}
+                          </span>
                         </button>
                       )
                     })}
