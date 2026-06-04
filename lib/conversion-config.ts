@@ -51,6 +51,7 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: 'PDF工具',
     icon: 'file-text',
     conversions: [
+      { from: 'pdf', to: 'docx', points: 5, label: 'PDF → Word' },
       { from: 'docx', to: 'pdf', points: 5, label: 'Word → PDF' },
       { from: 'pdf', to: 'jpg', points: 5, label: 'PDF → JPG' },
       { from: 'pdf', to: 'png', points: 5, label: 'PDF → PNG' },
@@ -184,12 +185,13 @@ export const SERVER_LIGHT_PAIRS: ReadonlyArray<Pair> = [
   ['svg', 'png'], ['svg', 'jpg'],
 ]
 
-/** 服务端重型（LibreOffice 子进程，独立并发=1） */
+/** 服务端重型（LibreOffice / pdf2docx / Adobe API，独立并发=1） */
 export const SERVER_HEAVY_PAIRS: ReadonlyArray<Pair> = [
   ['docx', 'pdf'], ['doc', 'pdf'],
   ['doc', 'docx'], ['docx', 'doc'],
   ['html', 'pdf'], ['htm', 'pdf'],
   ['epub', 'pdf'],
+  ['pdf', 'docx'],
 ]
 
 /** 客户端"伪转换"工具（不是真正的 from→to，是打开 Dialog） */

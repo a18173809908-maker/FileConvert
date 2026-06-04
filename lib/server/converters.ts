@@ -5,6 +5,7 @@ import { Document, Packer, Paragraph, TextRun } from 'docx'
 import sharp from 'sharp'
 import { extractText, getDocumentProxy } from 'unpdf'
 import { convertWithLibreOffice } from './libreoffice'
+import { convertPdfToDocx } from './pdf-to-docx'
 import { canConvertServer as canConvertServerShared, isHeavyConversion as isHeavyShared } from '@/lib/conversion-config'
 
 export interface ConvertResult {
@@ -192,6 +193,12 @@ export async function convertOnServer(
   if (f === 'docx' && t === 'doc') return viaLibreOffice(input, 'docx', 'doc', docMime)
   if ((f === 'html' || f === 'htm') && t === 'pdf') return viaLibreOffice(input, f, 'pdf', pdfMime)
   if (f === 'epub' && t === 'pdf') return viaLibreOffice(input, 'epub', 'pdf', pdfMime)
+
+  // PDF → DOCX：Adobe 优先 + pdf2docx 兜底
+  if (f === 'pdf' && t === 'docx') {
+    const { buffer } = await convertPdfToDocx(input)
+    return { buffer, mimeType: docxMime }
+  }
 
   throw new Error(`未实现的转换: ${f} → ${t}`)
 }

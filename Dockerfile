@@ -56,8 +56,18 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors
         libreoffice-writer \
         fonts-wqy-zenhei \
         fonts-wqy-microhei \
-        ca-certificates && \
+        ca-certificates \
+        python3 \
+        python3-venv && \
     rm -rf /var/lib/apt/lists/*
+
+# pdf2docx：PDF → DOCX 兜底引擎，~150MB
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir pdf2docx && \
+    /opt/venv/bin/pip cache purge 2>/dev/null || true
+ENV PATH="/opt/venv/bin:${PATH}" \
+    PYTHON_BIN=/opt/venv/bin/python3 \
+    PDF2DOCX_TIMEOUT_MS=90000
 
 RUN groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 --gid nodejs --create-home --home-dir /home/nextjs nextjs

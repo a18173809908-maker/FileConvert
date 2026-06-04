@@ -31,6 +31,25 @@ echo "export COOKIE_SECURE=true" >> ~/.bashrc
 HOST_PORT=80 bash deploy.sh   # 或者 Nginx 反代到容器
 ```
 
+## Adobe PDF Services（PDF → Word 高质量引擎）
+
+免费 500 次/月，超出自动 fallback 到容器内的 pdf2docx。
+
+```bash
+# 已加到 ~/.bashrc（持久化）
+export ADOBE_CLIENT_ID='xxxxxxxxx'
+export ADOBE_CLIENT_SECRET='p8e-xxxxxxxxxxxxxxx'
+
+# 重新部署即生效
+HOST_PORT=80 bash deploy.sh
+```
+
+未配置时 PDF→Word 直接走 pdf2docx（无 OCR、质量中等）。
+
+申请流程：https://developer.adobe.com/console → 新建项目 → 加 PDF Services API → OAuth Server-to-Server → 拿 Client ID + Secret。
+
+监控用量：https://developer.adobe.com/console 项目页能看 PDF Transactions。
+
 ## 微信 / QQ OAuth 启用（凭据齐了之后）
 
 ```bash
