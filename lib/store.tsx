@@ -5,9 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState, ReactNode 
 // ---------- 类型 ----------
 
 export interface ConvertSettings {
-  /** JPG/WEBP 输出质量 0.5-1.0 */
   imageQuality: number
-  /** PDF → 图片 渲染倍数 1-4 */
   pdfScale: number
 }
 
@@ -16,109 +14,79 @@ export const DEFAULT_SETTINGS: ConvertSettings = {
   pdfScale: 2,
 }
 
-interface AppState {
+export interface PublicUser {
+  id: number
+  nickname: string
+  avatarUrl: string | null
+  email: string | null
+  hasWechat: boolean
+  hasQQ: boolean
   points: number
-  setPoints: (n: number | ((prev: number) => number)) => void
-  isLoggedIn: boolean
-  setIsLoggedIn: (v: boolean) => void
   consecutiveDays: number
-  setConsecutiveDays: (n: number | ((prev: number) => number)) => void
   hasSignedToday: boolean
-  setHasSignedToday: (v: boolean) => void
+  inviteCode: string
+}
+
+interface AppState {
+  user: PublicUser | null
+  loadingUser: boolean
+  setUser: (u: PublicUser | null) => void
+  refreshUser: () => Promise<void>
+  logout: () => Promise<void>
+
   settings: ConvertSettings
   updateSettings: (patch: Partial<ConvertSettings>) => void
   resetSettings: () => void
+
+  loginDialogOpen: boolean
+  setLoginDialogOpen: (v: boolean) => void
 }
 
 const AppContext = createContext<AppState | null>(null)
 
-// ---------- 持久化辅助 ----------
+// ---------- 设置（仍存 localStorage） ----------
 
-const LS_POINTS = 'fc:points'
-const LS_LOGIN = 'fc:isLoggedIn'
-const LS_DAYS = 'fc:consecutiveDays'
-const LS_LAST_SIGN = 'fc:lastSignDate'
 const LS_SETTINGS = 'fc:settings'
-
-function loadNumber(key: string, fallback: number): number {
-  if (typeof window === 'undefined') return fallback
-  const raw = window.localStorage.getItem(key)
-  if (raw == null) return fallback
-  const n = Number(raw)
-  return Number.isFinite(n) ? n : fallback
-}
-
-function loadBool(key: string, fallback: boolean): boolean {
-  if (typeof window === 'undefined') return fallback
-  const raw = window.localStorage.getItem(key)
-  if (raw == null) return fallback
-  return raw === 'true'
-}
 
 function loadSettings(): ConvertSettings {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS
   try {
     const raw = window.localStorage.getItem(LS_SETTINGS)
     if (!raw) return DEFAULT_SETTINGS
-    const parsed = JSON.parse(raw)
-    return { ...DEFAULT_SETTINGS, ...parsed }
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
   } catch {
     return DEFAULT_SETTINGS
   }
 }
 
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 // ---------- Provider ----------
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  // 初始用 fallback，避免 SSR 与首屏不一致；挂载后再从 localStorage 同步
-  const [points, setPointsRaw] = useState<number>(120)
-  const [isLoggedIn, setIsLoggedInRaw] = useState<boolean>(false)
-  const [consecutiveDays, setConsecutiveDaysRaw] = useState<number>(0)
-  const [hasSignedToday, setHasSignedTodayRaw] = useState<boolean>(false)
+  const [user, setUser] = useState<PublicUser | null>(null)
+  const [loadingUser, setLoadingUser] = useState(true)
   const [settings, setSettings] = useState<ConvertSettings>(DEFAULT_SETTINGS)
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false)
 
-  // 挂载后从 localStorage 读取
-  useEffect(() => {
-    setPointsRaw(loadNumber(LS_POINTS, 120))
-    setIsLoggedInRaw(loadBool(LS_LOGIN, false))
-    setConsecutiveDaysRaw(loadNumber(LS_DAYS, 0))
-    const lastSign = window.localStorage.getItem(LS_LAST_SIGN)
-    setHasSignedTodayRaw(lastSign === todayStr())
-    setSettings(loadSettings())
-  }, [])
-
-  const setPoints = useCallback((n: number | ((prev: number) => number)) => {
-    setPointsRaw(prev => {
-      const next = typeof n === 'function' ? n(prev) : n
-      window.localStorage.setItem(LS_POINTS, String(next))
-      return next
-    })
-  }, [])
-
-  const setIsLoggedIn = useCallback((v: boolean) => {
-    setIsLoggedInRaw(v)
-    window.localStorage.setItem(LS_LOGIN, String(v))
-  }, [])
-
-  const setConsecutiveDays = useCallback((n: number | ((prev: number) => number)) => {
-    setConsecutiveDaysRaw(prev => {
-      const next = typeof n === 'function' ? n(prev) : n
-      window.localStorage.setItem(LS_DAYS, String(next))
-      return next
-    })
-  }, [])
-
-  const setHasSignedToday = useCallback((v: boolean) => {
-    setHasSignedTodayRaw(v)
-    if (v) {
-      window.localStorage.setItem(LS_LAST_SIGN, todayStr())
-    } else {
-      window.localStorage.removeItem(LS_LAST_SIGN)
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me', { cache: 'no-store' })
+      const data = await res.json()
+      setUser(data.user || null)
+    } catch {
+      setUser(null)
+    } finally {
+      setLoadingUser(false)
     }
+  }, [])
+
+  useEffect(() => {
+    refreshUser()
+    setSettings(loadSettings())
+  }, [refreshUser])
+
+  const logout = useCallback(async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    setUser(null)
   }, [])
 
   const updateSettings = useCallback((patch: Partial<ConvertSettings>) => {
@@ -137,11 +105,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider
       value={{
-        points, setPoints,
-        isLoggedIn, setIsLoggedIn,
-        consecutiveDays, setConsecutiveDays,
-        hasSignedToday, setHasSignedToday,
+        user, loadingUser, setUser, refreshUser, logout,
         settings, updateSettings, resetSettings,
+        loginDialogOpen, setLoginDialogOpen,
       }}
     >
       {children}
@@ -155,7 +121,6 @@ export function useApp(): AppState {
   return ctx
 }
 
-/** 读取当前转换设置的快照（用于非 React 模块） */
 export function readSettingsSnapshot(): ConvertSettings {
   return loadSettings()
 }

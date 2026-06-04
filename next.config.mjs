@@ -7,8 +7,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // sharp 是原生模块，不要被 Next.js 重新打包
-  serverExternalPackages: ['sharp'],
+  // 原生模块不要被 Next.js 重新打包
+  serverExternalPackages: ['sharp', 'better-sqlite3'],
 }
 
 export default nextConfig

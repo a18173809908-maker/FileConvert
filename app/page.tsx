@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
 import { Header } from '@/components/header'
 import { SidebarNav } from '@/components/sidebar-nav'
 import { UploadZone } from '@/components/upload-zone'
@@ -16,13 +17,7 @@ function generateId() {
 }
 
 function HomePageInner() {
-  const {
-    points, setPoints,
-    isLoggedIn, setIsLoggedIn,
-    consecutiveDays, setConsecutiveDays,
-    hasSignedToday, setHasSignedToday,
-  } = useApp()
-
+  const { user, refreshUser, setLoginDialogOpen } = useApp()
   const searchParams = useSearchParams()
 
   const [selectedConversion, setSelectedConversion] = useState<string | null>('pdf-docx')
@@ -31,17 +26,25 @@ function HomePageInner() {
 
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
 
-  // 从 URL ?conversion=pdf-docx 读取预设的转换方向（格式中心跳转过来）
+  // 从 URL ?conversion=pdf-docx 读取预设
   useEffect(() => {
     const conv = searchParams.get('conversion')
-    if (!conv) return
-    const [from, to] = conv.split('-')
-    if (from && to) {
-      setSelectedConversion(conv)
-      setSelectedFrom(from)
-      setSelectedTo(to)
+    if (conv) {
+      const [from, to] = conv.split('-')
+      if (from && to) {
+        setSelectedConversion(conv)
+        setSelectedFrom(from)
+        setSelectedTo(to)
+      }
     }
-  }, [searchParams])
+    // OAuth 回跳的成功/失败提示
+    if (searchParams.get('login') === 'success') {
+      toast.success('登录成功')
+      refreshUser()
+    }
+    const err = searchParams.get('login_error')
+    if (err) toast.error(`登录失败：${decodeURIComponent(err)}`)
+  }, [searchParams, refreshUser])
 
   const handleSelectConversion = useCallback((conversionId: string, from: string, to: string) => {
     setSelectedConversion(conversionId)
@@ -74,13 +77,10 @@ function HomePageInner() {
         sourceFile: file,
       }
     })
-
     setQueueItems(prev => [...prev, ...newItems])
   }, [selectedTo])
 
-  const handleClear = useCallback(() => {
-    setQueueItems([])
-  }, [])
+  const handleClear = useCallback(() => setQueueItems([]), [])
 
   const handleDownloadItem = useCallback((item: QueueItem) => {
     const blob = item.resultBlob || new Blob([item.fileName], { type: 'application/octet-stream' })
@@ -95,23 +95,33 @@ function HomePageInner() {
   }, [])
 
   const handleDownloadAll = useCallback(() => {
-    const completedItems = queueItems.filter(item => item.status === 'completed')
-    completedItems.forEach(item => handleDownloadItem(item))
+    queueItems.filter(i => i.status === 'completed').forEach(handleDownloadItem)
   }, [queueItems, handleDownloadItem])
 
   const handleStartConversion = useCallback(() => {
-    setQueueItems(prev => {
-      const hasQueued = prev.some(item => item.status === 'queued')
-      if (!hasQueued) return prev
+    // 未登录 → 引导登录
+    if (!user) {
+      toast.error('请先登录')
+      setLoginDialogOpen(true)
+      return
+    }
 
+    // 积分预检
+    const queued = queueItems.filter(i => i.status === 'queued')
+    const totalCost = queued.reduce((s, i) => s + i.points, 0)
+    if (user.points < totalCost) {
+      toast.error(`积分不足：需要 ${totalCost}，当前 ${user.points}`)
+      return
+    }
+
+    setQueueItems(prev => {
       const updated = prev.map(item => {
         if (item.status !== 'queued') return item
         if (!item.sourceFile) {
-          return { ...item, status: 'failed' as const, errorMessage: '未找到源文件，请重新上传' }
+          return { ...item, status: 'failed' as const, errorMessage: '未找到源文件' }
         }
         if (!canConvert(item.fromFormat, item.toFormat)) {
-          const msg = `暂不支持 ${item.fromFormat.toUpperCase()} → ${item.toFormat.toUpperCase()}`
-          return { ...item, status: 'failed' as const, errorMessage: msg }
+          return { ...item, status: 'failed' as const, errorMessage: `暂不支持 ${item.fromFormat.toUpperCase()} → ${item.toFormat.toUpperCase()}` }
         }
         return { ...item, status: 'converting' as const, progress: 0 }
       })
@@ -122,12 +132,25 @@ function HomePageInner() {
           convertFile(item.sourceFile!, item.fromFormat, item.toFormat, {
             onProgress: (current, total) => {
               const pct = Math.round((current / total) * 100)
-              setQueueItems(prev => prev.map(i =>
-                i.id === item.id ? { ...i, progress: pct } : i
-              ))
+              setQueueItems(prev => prev.map(i => i.id === item.id ? { ...i, progress: pct } : i))
             },
           })
-            .then(blob => {
+            .then(async (blob) => {
+              // 转换成功 → 扣积分
+              try {
+                await fetch('/api/points/charge', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    cost: item.points,
+                    from: item.fromFormat,
+                    to: item.toFormat,
+                    fileName: item.fileName,
+                  }),
+                })
+                refreshUser()
+              } catch {}
+
               setQueueItems(prev => prev.map(i =>
                 i.id === item.id
                   ? { ...i, status: 'completed' as const, progress: 100, resultBlob: blob }
@@ -145,7 +168,7 @@ function HomePageInner() {
 
       return updated
     })
-  }, [])
+  }, [user, queueItems, setLoginDialogOpen, refreshUser])
 
   const handleRemoveItem = useCallback((id: string) => {
     setQueueItems(prev => prev.filter(item => item.id !== id))
@@ -162,42 +185,14 @@ function HomePageInner() {
     input.click()
   }, [handleFilesSelected])
 
-  const handleSignIn = useCallback(() => {
-    if (isLoggedIn) return
-    setIsLoggedIn(true)
-    setPoints(prev => prev + 20)
-  }, [isLoggedIn, setIsLoggedIn, setPoints])
-
-  const handleCheckIn = useCallback(() => {
-    if (hasSignedToday) return
-    setHasSignedToday(true)
-    setConsecutiveDays(prev => prev + 1)
-    const bonus = 5 + (consecutiveDays >= 1 ? consecutiveDays * 2 : 0)
-    setPoints(prev => prev + bonus)
-  }, [consecutiveDays, hasSignedToday, setConsecutiveDays, setHasSignedToday, setPoints])
-
-  const handleCopyInviteLink = useCallback(() => {
-    const inviteLink = 'https://fileconvert.app/invite/' + generateId()
-    navigator.clipboard.writeText(inviteLink).catch(() => {
-      const textarea = document.createElement('textarea')
-      textarea.value = inviteLink
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-    })
-  }, [])
-
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
-
       <div className="flex flex-1">
         <SidebarNav
           selectedConversion={selectedConversion}
           onSelectConversion={handleSelectConversion}
         />
-
         <main className="flex-1 p-6">
           <div className="mx-auto max-w-4xl space-y-6">
             <UploadZone
@@ -206,7 +201,6 @@ function HomePageInner() {
               onSelectTo={handleSelectTo}
               onFilesSelected={handleFilesSelected}
             />
-
             <ConversionQueue
               items={queueItems}
               onClear={handleClear}
@@ -218,23 +212,13 @@ function HomePageInner() {
             />
           </div>
         </main>
-
-        <AccountPanel
-          points={points}
-          isLoggedIn={isLoggedIn}
-          consecutiveDays={consecutiveDays}
-          hasSignedToday={hasSignedToday}
-          onSignIn={handleSignIn}
-          onCheckIn={handleCheckIn}
-          onCopyInviteLink={handleCopyInviteLink}
-        />
+        <AccountPanel />
       </div>
     </div>
   )
 }
 
 export default function HomePage() {
-  // useSearchParams 需要在 Suspense 边界内
   return (
     <Suspense fallback={null}>
       <HomePageInner />

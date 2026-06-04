@@ -115,7 +115,7 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
           </button>
         </p>
         <p className="mb-4 text-sm text-muted-foreground">
-          支持批量上传 · 文件全程加密传输，转换后 <span className="text-foreground">1小时</span> 自动删除
+          支持批量上传 · <span className="text-foreground">服务器不保存任何文件</span>，处理后立即销毁
         </p>
 
         {/* Format Tags */}
@@ -159,7 +159,7 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
           <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
-          文件1小时自动删除
+          服务器不保存文件
         </span>
         <span className="flex items-center gap-1">
           <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor">

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AppProvider } from '@/lib/store'
+import { AuthDialog } from '@/components/auth-dialog'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
@@ -40,7 +41,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className="bg-background">
       <body className="font-sans antialiased">
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          {children}
+          <AuthDialog />
+        </AppProvider>
         <Toaster position="top-center" richColors />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

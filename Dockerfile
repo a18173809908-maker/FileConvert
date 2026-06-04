@@ -40,6 +40,16 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/sharp ./node_modules/sharp
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@img ./node_modules/@img
 
+# better-sqlite3 也是原生模块，standalone 不会带原生 .node
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bindings ./node_modules/bindings
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
+
+# DB 文件目录，外部用 -v 挂卷持久化
+RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
+VOLUME /app/data
+ENV DB_PATH=/app/data/fileconvert.db
+
 USER nextjs
 EXPOSE 3000
 CMD ["node", "server.js"]

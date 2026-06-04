@@ -7,6 +7,10 @@ IMAGE_NAME="fileconvert"
 CONTAINER_NAME="fileconvert"
 HOST_PORT="${HOST_PORT:-3000}"
 CONTAINER_PORT=3000
+DATA_DIR="${DATA_DIR:-$HOME/fileconvert-data}"
+SESSION_SECRET="${SESSION_SECRET:-$(openssl rand -hex 32 2>/dev/null || head -c 64 /dev/urandom | base64)}"
+
+mkdir -p "${DATA_DIR}"
 
 echo "==> 构建镜像 ${IMAGE_NAME}"
 docker build -t "${IMAGE_NAME}:latest" .
@@ -23,6 +27,14 @@ docker run -d \
   --memory-swap="${MEM_LIMIT:-2560m}" \
   --cpus="${CPU_LIMIT:-1.5}" \
   -p "${HOST_PORT}:${CONTAINER_PORT}" \
+  -v "${DATA_DIR}:/app/data" \
+  -e SESSION_SECRET="${SESSION_SECRET}" \
+  ${WECHAT_APP_ID:+-e WECHAT_APP_ID="${WECHAT_APP_ID}"} \
+  ${WECHAT_APP_SECRET:+-e WECHAT_APP_SECRET="${WECHAT_APP_SECRET}"} \
+  ${WECHAT_REDIRECT_URI:+-e WECHAT_REDIRECT_URI="${WECHAT_REDIRECT_URI}"} \
+  ${QQ_APP_ID:+-e QQ_APP_ID="${QQ_APP_ID}"} \
+  ${QQ_APP_KEY:+-e QQ_APP_KEY="${QQ_APP_KEY}"} \
+  ${QQ_REDIRECT_URI:+-e QQ_REDIRECT_URI="${QQ_REDIRECT_URI}"} \
   "${IMAGE_NAME}:latest"
 
 echo
@@ -31,3 +43,7 @@ docker ps --filter "name=${CONTAINER_NAME}" --format "table {{.Names}}\t{{.Statu
 echo
 echo "访问：http://<服务器公网IP>:${HOST_PORT}"
 echo "查看日志：docker logs -f ${CONTAINER_NAME}"
+echo "数据库挂载：${DATA_DIR}"
+echo
+echo "首次启动如已生成 SESSION_SECRET，下次部署请固定它："
+echo "  export SESSION_SECRET='${SESSION_SECRET}'"
