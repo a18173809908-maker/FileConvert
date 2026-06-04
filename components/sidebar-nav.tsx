@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Image, Settings, PenTool, BookOpen, ChevronDown, ChevronRight, Flame } from 'lucide-react'
+import { FileText, Image, Settings, PenTool, BookOpen, Code, ChevronDown, ChevronRight, Flame } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CONVERSION_CATEGORIES, isConversionSupported } from '@/lib/conversion-config'
 import { ImageToolDialog } from '@/components/image-tool-dialog'
 import { ImageToolId, isImageTool } from '@/lib/image-tools'
 import { PdfToolDialog } from '@/components/pdf-tool-dialog'
 import { PdfToolId, isPdfTool } from '@/lib/pdf-tools'
+import { JsonToolDialog } from '@/components/json-tool-dialog'
 
 const iconMap: Record<string, React.ElementType> = {
   'file-text': FileText,
@@ -16,6 +17,7 @@ const iconMap: Record<string, React.ElementType> = {
   'settings': Settings,
   'pen-tool': PenTool,
   'book-open': BookOpen,
+  'code': Code,
 }
 
 interface SidebarNavProps {
@@ -27,6 +29,7 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['pdf'])
   const [activeTool, setActiveTool] = useState<ImageToolId | null>(null)
   const [activePdfTool, setActivePdfTool] = useState<PdfToolId | null>(null)
+  const [jsonOpen, setJsonOpen] = useState(false)
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => 
@@ -97,6 +100,11 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
                           setActivePdfTool(conversion.to)
                           return
                         }
+                        // JSON 工具
+                        if (conversion.from === 'json' && conversion.to === 'tools') {
+                          setJsonOpen(true)
+                          return
+                        }
                         onSelectConversion(conversionId, conversion.from, conversion.to)
                       }
 
@@ -153,6 +161,7 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
 
       <ImageToolDialog tool={activeTool} onClose={() => setActiveTool(null)} />
       <PdfToolDialog tool={activePdfTool} onClose={() => setActivePdfTool(null)} />
+      <JsonToolDialog open={jsonOpen} onClose={() => setJsonOpen(false)} />
     </aside>
   )
 }

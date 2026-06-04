@@ -196,6 +196,7 @@ export const SERVER_HEAVY_PAIRS: ReadonlyArray<Pair> = [
 export const CLIENT_TOOL_PAIRS: ReadonlyArray<Pair> = [
   ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'], ['image', 'crop'],
   ['pdf', 'merge'], ['pdf', 'split'], ['pdf', 'rotate'],
+  ['json', 'tools'],
 ]
 
 const matchPair = (list: ReadonlyArray<Pair>, from: string, to: string): boolean => {
