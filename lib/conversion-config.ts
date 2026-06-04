@@ -120,7 +120,7 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
 ]
 
 // 支持的输出格式（用于格式选择器）
-export const OUTPUT_FORMATS = ['DOCX', 'PDF', 'JPG', 'PNG', 'XLSX', 'TXT']
+export const OUTPUT_FORMATS = ['PDF', 'DOCX', 'JPG', 'PNG', 'WEBP', 'TXT']
 
 // 支持的输入格式标签
 export const INPUT_FORMAT_TAGS = ['PDF', 'DOCX', 'DOC', 'XLSX', 'PPTX', 'TXT', 'JPG', 'PNG', 'WEBP', 'GIF', 'SVG']

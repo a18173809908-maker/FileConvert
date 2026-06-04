@@ -204,7 +204,11 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
       <div className="mt-4 flex items-center gap-3">
         <span className="text-sm text-muted-foreground">转换为</span>
         <div className="flex flex-wrap gap-2">
-          {OUTPUT_FORMATS.map((format) => {
+          {/* 若当前选中的目标格式不在默认列表中（例如从侧边栏选的 SVG/BMP/GIF），动态补上 */}
+          {(OUTPUT_FORMATS.includes(selectedTo.toUpperCase())
+            ? OUTPUT_FORMATS
+            : [selectedTo.toUpperCase(), ...OUTPUT_FORMATS]
+          ).map((format) => {
             const isSelected = selectedTo.toUpperCase() === format
             return (
               <button
@@ -222,9 +226,6 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
               </button>
             )
           })}
-          <button onClick={handleMoreFormats} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/50">
-            + 更多格式
-          </button>
         </div>
         <button onClick={handleConversionSettings} className="ml-auto flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <Settings className="h-4 w-4" />
