@@ -146,38 +146,76 @@ export interface QueueItem {
   errorMessage?: string
 }
 
-// 当前真正能跑通的转换对（浏览器 Canvas + pdfjs + 服务端 sharp/pdf-lib/mammoth/docx/unpdf）
-// 与 lib/convert.ts 和 lib/server/converters.ts 保持同步
-const SUPPORTED_PAIRS: ReadonlyArray<readonly [string, string]> = [
-  // 图片互转（Canvas）
+// ============================================================
+// 转换能力清单（单一事实来源 — Single Source of Truth）
+// 客户端 / 服务端 / UI 全部从这里读，避免不同地方分别维护导致漂移
+// ============================================================
+
+type Pair = readonly [string, string]
+
+/** 浏览器 Canvas 直转（image → image） */
+export const CLIENT_CANVAS_PAIRS: ReadonlyArray<Pair> = [
   ['jpg', 'png'], ['jpg', 'webp'], ['jpg', 'jpeg'],
   ['jpeg', 'png'], ['jpeg', 'webp'], ['jpeg', 'jpg'],
   ['png', 'jpg'], ['png', 'jpeg'], ['png', 'webp'],
   ['webp', 'jpg'], ['webp', 'jpeg'], ['webp', 'png'],
   ['bmp', 'jpg'], ['bmp', 'jpeg'], ['bmp', 'png'], ['bmp', 'webp'],
   ['gif', 'jpg'], ['gif', 'jpeg'], ['gif', 'png'], ['gif', 'webp'],
-  // PDF → 图片（pdfjs）
+]
+
+/** 浏览器 pdfjs PDF → 图片 */
+export const CLIENT_PDFJS_PAIRS: ReadonlyArray<Pair> = [
   ['pdf', 'jpg'], ['pdf', 'jpeg'], ['pdf', 'png'],
-  // 服务端
+]
+
+/** 服务端轻量级（sharp / pdf-lib / mammoth / docx / unpdf） */
+export const SERVER_LIGHT_PAIRS: ReadonlyArray<Pair> = [
   ['txt', 'pdf'], ['txt', 'docx'],
   ['docx', 'txt'], ['pdf', 'txt'],
   ['jpg', 'pdf'], ['jpeg', 'pdf'], ['png', 'pdf'], ['webp', 'pdf'],
   ['svg', 'png'], ['svg', 'jpg'],
-  // 图片工具（客户端 Dialog 实现）
-  ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'], ['image', 'crop'],
-  // PDF 工具（客户端 pdf-lib Dialog 实现）
-  ['pdf', 'merge'], ['pdf', 'split'], ['pdf', 'rotate'],
-  // 服务端重型（LibreOffice）
+]
+
+/** 服务端重型（LibreOffice 子进程，独立并发=1） */
+export const SERVER_HEAVY_PAIRS: ReadonlyArray<Pair> = [
   ['docx', 'pdf'], ['doc', 'pdf'],
   ['doc', 'docx'], ['docx', 'doc'],
   ['html', 'pdf'], ['htm', 'pdf'],
   ['epub', 'pdf'],
 ]
 
-export function isConversionSupported(from: string, to: string): boolean {
+/** 客户端"伪转换"工具（不是真正的 from→to，是打开 Dialog） */
+export const CLIENT_TOOL_PAIRS: ReadonlyArray<Pair> = [
+  ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'], ['image', 'crop'],
+  ['pdf', 'merge'], ['pdf', 'split'], ['pdf', 'rotate'],
+]
+
+const matchPair = (list: ReadonlyArray<Pair>, from: string, to: string): boolean => {
   const f = from.toLowerCase()
   const t = to.toLowerCase()
-  return SUPPORTED_PAIRS.some(([a, b]) => a === f && b === t)
+  return list.some(([a, b]) => a === f && b === t)
+}
+
+/** 能否直接在浏览器端（Canvas 或 pdfjs）转换 */
+export function canConvertClient(from: string, to: string): boolean {
+  return matchPair(CLIENT_CANVAS_PAIRS, from, to) || matchPair(CLIENT_PDFJS_PAIRS, from, to)
+}
+
+/** 能否走 /api/convert（包含轻型和重型） */
+export function canConvertServer(from: string, to: string): boolean {
+  return matchPair(SERVER_LIGHT_PAIRS, from, to) || matchPair(SERVER_HEAVY_PAIRS, from, to)
+}
+
+/** 是否需要走 LibreOffice（独立信号量） */
+export function isHeavyConversion(from: string, to: string): boolean {
+  return matchPair(SERVER_HEAVY_PAIRS, from, to)
+}
+
+/** UI 是否应该把这条转换显示为"支持"（任一方式可用即可） */
+export function isConversionSupported(from: string, to: string): boolean {
+  return canConvertClient(from, to)
+      || canConvertServer(from, to)
+      || matchPair(CLIENT_TOOL_PAIRS, from, to)
 }
 
 // 根据文件扩展名获取积分消耗

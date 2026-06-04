@@ -1,9 +1,6 @@
 import { pdfToImageBlob, PdfToImageOptions } from './convert-pdf'
 import { readSettingsSnapshot } from './store'
-
-const CANVAS_READABLE = new Set(['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'])
-const CANVAS_WRITABLE = new Set(['jpg', 'jpeg', 'png', 'webp'])
-const PDF_TO_IMAGE = new Set(['jpg', 'jpeg', 'png'])
+import { canConvertClient, canConvertServer } from './conversion-config'
 
 const MIME_MAP: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -12,38 +9,8 @@ const MIME_MAP: Record<string, string> = {
   webp: 'image/webp',
 }
 
-const SERVER_PAIRS: ReadonlyArray<readonly [string, string]> = [
-  ['txt', 'pdf'],
-  ['txt', 'docx'],
-  ['docx', 'txt'],
-  ['pdf', 'txt'],
-  ['jpg', 'pdf'], ['jpeg', 'pdf'], ['png', 'pdf'], ['webp', 'pdf'],
-  ['svg', 'png'], ['svg', 'jpg'],
-  ['bmp', 'png'], ['bmp', 'jpg'], ['bmp', 'webp'],
-  ['gif', 'png'], ['gif', 'jpg'], ['gif', 'webp'],
-  // 服务端重型（LibreOffice）
-  ['docx', 'pdf'], ['doc', 'pdf'],
-  ['doc', 'docx'], ['docx', 'doc'],
-  ['html', 'pdf'], ['htm', 'pdf'],
-  ['epub', 'pdf'],
-]
-
-function canConvertClient(from: string, to: string): boolean {
-  if (CANVAS_READABLE.has(from) && CANVAS_WRITABLE.has(to)) return true
-  if (from === 'pdf' && PDF_TO_IMAGE.has(to)) return true
-  return false
-}
-
-function canConvertServer(from: string, to: string): boolean {
-  const f = from.toLowerCase()
-  const t = to.toLowerCase()
-  return SERVER_PAIRS.some(([a, b]) => a === f && b === t)
-}
-
 export function canConvert(from: string, to: string): boolean {
-  const f = from.toLowerCase()
-  const t = to.toLowerCase()
-  return canConvertClient(f, t) || canConvertServer(f, t)
+  return canConvertClient(from, to) || canConvertServer(from, to)
 }
 
 async function fileToImage(file: File): Promise<HTMLImageElement> {

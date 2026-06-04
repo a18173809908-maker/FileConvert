@@ -5,52 +5,16 @@ import { Document, Packer, Paragraph, TextRun } from 'docx'
 import sharp from 'sharp'
 import { extractText, getDocumentProxy } from 'unpdf'
 import { convertWithLibreOffice } from './libreoffice'
+import { canConvertServer as canConvertServerShared, isHeavyConversion as isHeavyShared } from '@/lib/conversion-config'
 
 export interface ConvertResult {
   buffer: Buffer
   mimeType: string
 }
 
-// 服务端支持的转换对（小写）
-const SERVER_PAIRS: Array<[string, string]> = [
-  ['txt', 'pdf'],
-  ['txt', 'docx'],
-  ['docx', 'txt'],
-  ['pdf', 'txt'],
-  ['jpg', 'pdf'], ['jpeg', 'pdf'], ['png', 'pdf'], ['webp', 'pdf'],
-  ['svg', 'png'], ['svg', 'jpg'],
-  ['bmp', 'png'], ['bmp', 'jpg'], ['bmp', 'webp'],
-  ['gif', 'png'], ['gif', 'jpg'], ['gif', 'webp'],
-  // 走 LibreOffice
-  ['docx', 'pdf'], ['doc', 'pdf'],
-  ['doc', 'docx'], ['docx', 'doc'],
-  ['html', 'pdf'], ['htm', 'pdf'],
-  ['epub', 'pdf'],
-]
-
-// 需要走 LibreOffice 的重型转换（独立信号量 = 1）
-const HEAVY_PAIRS: Array<[string, string]> = [
-  ['docx', 'pdf'], ['doc', 'pdf'],
-  ['doc', 'docx'], ['docx', 'doc'],
-  ['html', 'pdf'], ['htm', 'pdf'],
-  ['epub', 'pdf'],
-]
-
-export function canConvertServer(from: string, to: string): boolean {
-  const f = from.toLowerCase()
-  const t = to.toLowerCase()
-  return SERVER_PAIRS.some(([a, b]) => a === f && b === t)
-}
-
-export function isHeavyConversion(from: string, to: string): boolean {
-  const f = from.toLowerCase()
-  const t = to.toLowerCase()
-  return HEAVY_PAIRS.some(([a, b]) => a === f && b === t)
-}
-
-export function getServerSupportedPairs(): Array<[string, string]> {
-  return SERVER_PAIRS.slice()
-}
+// 直接复用 lib/conversion-config.ts 的单一事实来源
+export const canConvertServer = canConvertServerShared
+export const isHeavyConversion = isHeavyShared
 
 // ---------- TXT 系列 ----------
 
