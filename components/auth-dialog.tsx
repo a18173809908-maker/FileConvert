@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -24,6 +24,17 @@ export function AuthDialog() {
   const [inviteCode, setInviteCode] = useState('')
   const [working, setWorking] = useState(false)
 
+  // 打开对话框时，若 localStorage 有 pendingInvite，自动切到注册并填邀请码
+  useEffect(() => {
+    if (!loginDialogOpen) return
+    if (typeof window === 'undefined') return
+    const pending = window.localStorage.getItem('fc:pendingInvite')
+    if (pending) {
+      setMode('register')
+      setInviteCode(pending)
+    }
+  }, [loginDialogOpen])
+
   const reset = () => {
     setEmail(''); setPassword(''); setNickname(''); setInviteCode('')
   }
@@ -44,6 +55,10 @@ export function AuthDialog() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || '操作失败')
       await refreshUser()
+      // 注册成功 → 清掉 pendingInvite，避免重复使用
+      if (mode === 'register' && typeof window !== 'undefined') {
+        window.localStorage.removeItem('fc:pendingInvite')
+      }
       toast.success(mode === 'login' ? '登录成功' : '注册成功，已赠送 20 积分')
       setLoginDialogOpen(false)
       reset()

@@ -139,8 +139,8 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
         <p className="mt-4 text-xs text-muted-foreground">
           PDF ≤ {FILE_SIZE_LIMITS.pdf}MB · 其他 ≤ {FILE_SIZE_LIMITS.image}MB · 支持 30+ 种格式
         </p>
-        <p className="mt-1 text-[11px] text-muted-foreground/70">
-          推荐使用 Chrome / Edge 100+、Firefox 100+ 或 Safari 16+
+        <p className="mt-2 text-sm font-semibold text-destructive">
+          ⚠️ 推荐使用 Chrome / Edge 100+、Firefox 100+ 或 Safari 16+
         </p>
       </div>
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createUser, getUserByEmail, generateUniqueInviteCode, addPoints, getUserByInviteCode } from '@/lib/server/db'
 import { hashPassword, getSession, toPublicUser } from '@/lib/server/auth'
+import { POINTS_CONFIG } from '@/lib/conversion-config'
 
 export const runtime = 'nodejs'
 
@@ -37,15 +38,15 @@ export async function POST(req: NextRequest) {
       nickname,
       invite_code: generateUniqueInviteCode(),
       invited_by: invitedBy,
-      initial_points: 20,
+      initial_points: POINTS_CONFIG.register,
     })
 
     // 注册赠送积分写入 log
-    addPoints(user.id, 0, 'register_bonus', { initial: 20 })
+    addPoints(user.id, 0, 'register_bonus', { initial: POINTS_CONFIG.register })
 
     // 邀请人也加积分（邀请奖励）
     if (invitedBy) {
-      try { addPoints(invitedBy, 50, 'invite_reward', { invited_user: user.id }) } catch {}
+      try { addPoints(invitedBy, POINTS_CONFIG.invite, 'invite_reward', { invited_user: user.id }) } catch {}
     }
 
     const session = await getSession()

@@ -44,7 +44,18 @@ function HomePageInner() {
     }
     const err = searchParams.get('login_error')
     if (err) toast.error(`登录失败：${decodeURIComponent(err)}`)
-  }, [searchParams, refreshUser])
+
+    // 邀请链接 ?ref=xxx：存到 localStorage，注册时自动带上
+    const ref = searchParams.get('ref')
+    if (ref && typeof window !== 'undefined') {
+      window.localStorage.setItem('fc:pendingInvite', ref.trim().toLowerCase())
+      // 未登录且有邀请码 → 自动弹注册框
+      if (!user) {
+        setLoginDialogOpen(true)
+        toast.info('邀请码已自动填入，注册后双方各得奖励')
+      }
+    }
+  }, [searchParams, refreshUser, user, setLoginDialogOpen])
 
   const handleSelectConversion = useCallback((conversionId: string, from: string, to: string) => {
     setSelectedConversion(conversionId)

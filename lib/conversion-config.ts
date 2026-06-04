@@ -17,9 +17,9 @@ export interface ConversionCategory {
 // 积分规则配置
 export const POINTS_CONFIG = {
   register: 20,
-  dailyLogin: 5,
+  dailyLogin: 20,
   dailyRestore: 10,
-  invite: 50,
+  invite: 200,
   consecutiveBonus: [0, 2, 4, 6, 8, 10, 15], // 连续签到额外奖励
 }
 
