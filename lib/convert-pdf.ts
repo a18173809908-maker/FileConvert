@@ -3,13 +3,36 @@ import JSZip from 'jszip'
 
 let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null
 
+// 老浏览器（Chrome<140 等）没有 Uint8Array.toHex/fromHex，但 pdfjs v6 会用，主线程也要 polyfill
+function applyPolyfills() {
+  if (typeof Uint8Array === 'undefined') return
+  const proto = Uint8Array.prototype as Uint8Array & { toHex?: () => string }
+  if (!proto.toHex) {
+    proto.toHex = function (this: Uint8Array) {
+      let out = ''
+      for (let i = 0; i < this.length; i++) out += this[i].toString(16).padStart(2, '0')
+      return out
+    }
+  }
+  const ctor = Uint8Array as unknown as { fromHex?: (s: string) => Uint8Array }
+  if (!ctor.fromHex) {
+    ctor.fromHex = function (s: string) {
+      const len = s.length / 2
+      const buf = new Uint8Array(len)
+      for (let i = 0; i < len; i++) buf[i] = parseInt(s.substr(i * 2, 2), 16)
+      return buf
+    }
+  }
+}
+
 async function loadPdfjs() {
   if (typeof window === 'undefined') {
     throw new Error('pdfjs 只能在浏览器环境运行')
   }
   if (!pdfjsPromise) {
+    applyPolyfills()
     pdfjsPromise = import('pdfjs-dist').then((mod) => {
-      // worker 由 scripts/copy-pdf-worker.mjs 在构建前复制到 /public，同源加载更稳
+      // worker 由 scripts/copy-pdf-worker.mjs 在构建前复制到 /public（含 polyfill）
       mod.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
       return mod
     })
