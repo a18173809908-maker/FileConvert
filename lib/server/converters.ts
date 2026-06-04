@@ -34,8 +34,15 @@ export function getServerSupportedPairs(): Array<[string, string]> {
 
 // ---------- TXT 系列 ----------
 
+// 防爆上限：单次 TXT→PDF 的字符数和生成页数
+const TXT_TO_PDF_MAX_CHARS = 500_000   // ~500KB ASCII，约 1000 页 PDF
+const TXT_TO_PDF_MAX_PAGES = 1000
+
 async function txtToPdf(input: Buffer): Promise<ConvertResult> {
-  const text = input.toString('utf-8')
+  let text = input.toString('utf-8')
+  if (text.length > TXT_TO_PDF_MAX_CHARS) {
+    throw new Error(`文本过长（${text.length} 字符），单次 TXT→PDF 上限 ${TXT_TO_PDF_MAX_CHARS} 字符`)
+  }
   const pdf = await PDFDocument.create()
   const font = await pdf.embedFont(StandardFonts.Helvetica)
   const fontSize = 11
@@ -72,8 +79,13 @@ async function txtToPdf(input: Buffer): Promise<ConvertResult> {
 
   let page = pdf.addPage([pageWidth, pageHeight])
   let y = pageHeight - margin
+  let pageCount = 1
   for (const line of lines) {
     if (y < margin) {
+      pageCount++
+      if (pageCount > TXT_TO_PDF_MAX_PAGES) {
+        throw new Error(`生成页数超过上限 ${TXT_TO_PDF_MAX_PAGES} 页`)
+      }
       page = pdf.addPage([pageWidth, pageHeight])
       y = pageHeight - margin
     }
