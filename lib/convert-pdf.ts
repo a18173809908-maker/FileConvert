@@ -9,8 +9,8 @@ async function loadPdfjs() {
   }
   if (!pdfjsPromise) {
     pdfjsPromise = import('pdfjs-dist').then((mod) => {
-      mod.GlobalWorkerOptions.workerSrc =
-        `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${mod.version}/pdf.worker.min.mjs`
+      // worker 由 scripts/copy-pdf-worker.mjs 在构建前复制到 /public，同源加载更稳
+      mod.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
       return mod
     })
   }
