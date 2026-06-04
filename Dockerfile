@@ -4,14 +4,8 @@
 # ---------- 1) 依赖层 ----------
 FROM node:20-slim AS deps
 WORKDIR /app
-COPY package.json package-lock.json* pnpm-lock.yaml* ./
-RUN if [ -f pnpm-lock.yaml ]; then \
-      corepack enable && pnpm install --frozen-lockfile; \
-    elif [ -f package-lock.json ]; then \
-      npm ci; \
-    else \
-      npm install; \
-    fi
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 # ---------- 2) 构建层 ----------
 FROM node:20-slim AS builder
