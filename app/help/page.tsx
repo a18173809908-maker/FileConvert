@@ -1,36 +1,42 @@
 import { Header } from '@/components/header'
-import { HelpCircle, Shield, Clock, CreditCard, FileText, Upload } from 'lucide-react'
+import { Shield, Clock, CreditCard, FileText, Upload, HelpCircle, Mail, AlertCircle } from 'lucide-react'
+import { FILE_SIZE_LIMITS, POINTS_CONFIG } from '@/lib/conversion-config'
 
 const faqItems = [
   {
     icon: Shield,
-    question: '文件安全吗？',
-    answer: '您的文件全程加密传输，转换完成后 1 小时内自动从服务器删除。我们不会查看、存储或分享您的文件内容。',
+    question: '我的文件安全吗？',
+    answer: '安全。服务器不保存任何文件——所有转换在内存中完成，请求结束立即销毁。图片转换、PDF 转图片、PDF 合并 / 拆分 / 旋转、图片裁剪等都在你浏览器本地完成，文件根本不上传到服务器。',
   },
   {
     icon: Clock,
     question: '转换需要多长时间？',
-    answer: '大多数文件转换在几秒到一分钟内完成。具体时间取决于文件大小和服务器负载情况。',
+    answer: '取决于转换类型：浏览器内的图片转换通常 < 1 秒；轻量级服务端转换（TXT/SVG）一般 1-3 秒；Word ↔ PDF / EPUB → PDF 这种走 LibreOffice 的重型转换通常 3-10 秒。',
   },
   {
     icon: CreditCard,
-    question: '需要付费吗？',
-    answer: '基础功能完全免费！注册即送 20 积分，每日登录可领取 5 积分，每日自动恢复 10 积分。邀请好友还可获得 50 积分/人奖励。',
+    question: '收费吗？',
+    answer: `完全免费。注册即送 ${POINTS_CONFIG.register} 积分，每日签到送 ${POINTS_CONFIG.dailyLogin} 积分（连续签到额外奖励，第 7 天最高 +15），邀请好友双方各得 ${POINTS_CONFIG.invite} 积分。积分仅用于消耗记账，目前不收钱。`,
   },
   {
     icon: FileText,
     question: '支持哪些文件格式？',
-    answer: '支持 PDF、Word（DOC/DOCX）、TXT、HTML、JPG、PNG、WEBP、GIF、BMP、SVG、EPUB 等 30+ 种格式的相互转换。',
+    answer: '图片：JPG/PNG/WEBP/BMP/GIF/SVG 任意互转。PDF：PDF ↔ TXT/JPG/PNG，合并/拆分/旋转。文档：DOCX ↔ TXT，Word ↔ PDF，DOC ↔ DOCX。其他：HTML → PDF，EPUB → PDF，TXT → PDF/DOCX。具体能转哪几对，看左侧侧边栏，没"敬请期待"标的都能用。',
   },
   {
     icon: Upload,
     question: '文件大小有限制吗？',
-    answer: '网页版单个文件限制为 10MB。如需处理更大文件，建议下载桌面版客户端，无文件大小限制。',
+    answer: `PDF 单文件 ≤ ${FILE_SIZE_LIMITS.pdf}MB，其他类型 ≤ ${FILE_SIZE_LIMITS.image}MB。超出会直接拒绝并提示。`,
   },
   {
     icon: HelpCircle,
-    question: '转换质量如何？',
-    answer: '我们使用先进的转换引擎，确保转换后的文件最大程度保留原始排版和格式。但复杂排版（如多栏、表格）可能存在细微差异。',
+    question: '转换失败怎么办？',
+    answer: '常见原因：(1) 文件损坏或加密 PDF；(2) 服务繁忙——会自动重试一次；(3) 文档内有非常规字体导致 LibreOffice 渲染异常。重试或换个文件试试，仍不行邮件联系我们。',
+  },
+  {
+    icon: AlertCircle,
+    question: '为什么有些转换标"敬请期待"？',
+    answer: '比如 PDF → Word、PDF → EPUB——这类反向解析对开源工具来说精度太低，强行做出来的结果用户没法看。如果有强烈需求我们再评估接商业 API。',
   },
 ]
 
@@ -43,10 +49,11 @@ export default function HelpPage() {
           <div className="mb-8">
             <h1 className="text-2xl font-bold">帮助中心</h1>
             <p className="mt-2 text-muted-foreground">
-              常见问题与使用指南，帮助您更好地使用文件转换服务
+              常见问题与使用指南
             </p>
           </div>
 
+          {/* FAQ */}
           <div className="space-y-4">
             {faqItems.map((item) => {
               const Icon = item.icon
@@ -58,7 +65,7 @@ export default function HelpPage() {
                     </div>
                     <div>
                       <h2 className="mb-2 text-lg font-semibold">{item.question}</h2>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{item.answer}</p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{item.answer}</p>
                     </div>
                   </div>
                 </div>
@@ -66,6 +73,7 @@ export default function HelpPage() {
             })}
           </div>
 
+          {/* 使用步骤 */}
           <div className="mt-8 rounded-lg border border-border bg-card p-6">
             <h2 className="mb-4 text-lg font-semibold">使用步骤</h2>
             <div className="space-y-4">
@@ -73,37 +81,45 @@ export default function HelpPage() {
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">1</span>
                 <div>
                   <h3 className="font-medium">选择转换方向</h3>
-                  <p className="text-sm text-muted-foreground">在左侧菜单中选择您需要的转换类型，例如 "PDF → Word"</p>
+                  <p className="text-sm text-muted-foreground">在左侧菜单中选择转换类型，如 "PDF → JPG"。或从"转换为"按钮快速切换目标格式</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">2</span>
                 <div>
                   <h3 className="font-medium">上传文件</h3>
-                  <p className="text-sm text-muted-foreground">拖拽文件到上传区域，或点击选择文件。每次只能处理一个文件</p>
+                  <p className="text-sm text-muted-foreground">拖拽多个文件到上传区，或点击选择。支持批量上传</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">3</span>
                 <div>
                   <h3 className="font-medium">开始转换</h3>
-                  <p className="text-sm text-muted-foreground">点击"转换"按钮，等待转换完成后下载文件</p>
+                  <p className="text-sm text-muted-foreground">点击队列里的"转换"按钮。服务端转换会自动扣减积分</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">4</span>
                 <div>
                   <h3 className="font-medium">下载结果</h3>
-                  <p className="text-sm text-muted-foreground">转换完成后点击下载按钮保存文件。文件将在 1 小时后自动删除</p>
+                  <p className="text-sm text-muted-foreground">完成后点下载按钮即可保存到本地</p>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* 联系 */}
           <div className="mt-8 rounded-lg border border-border bg-card p-6 text-center">
+            <Mail className="mx-auto mb-2 h-6 w-6 text-primary" />
             <h2 className="mb-2 text-lg font-semibold">还有问题？</h2>
             <p className="text-sm text-muted-foreground">
-              如果您的问题未在帮助中心中找到答案，请通过邮件联系我们：support@fileconvert.app
+              邮件联系：
+              <a href="mailto:4514407@qq.com" className="ml-1 text-primary hover:underline">
+                4514407@qq.com
+              </a>
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              报 bug、提建议、申请新格式支持都欢迎
             </p>
           </div>
         </div>

@@ -118,6 +118,14 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
       { from: 'epub', to: 'pdf', points: 5, label: 'EPUB → PDF' },
     ]
   },
+  {
+    id: 'dev',
+    name: '开发者工具',
+    icon: 'code',
+    conversions: [
+      { from: 'json', to: 'tools', points: 0, label: 'JSON 格式化 / 校验' },
+    ]
+  },
 ]
 
 // 支持的输出格式（用于格式选择器）
