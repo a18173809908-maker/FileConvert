@@ -162,6 +162,8 @@ const SUPPORTED_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ['docx', 'txt'], ['pdf', 'txt'],
   ['jpg', 'pdf'], ['jpeg', 'pdf'], ['png', 'pdf'], ['webp', 'pdf'],
   ['svg', 'png'], ['svg', 'jpg'],
+  // 图片工具（客户端 Dialog 实现）
+  ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'],
 ]
 
 export function isConversionSupported(from: string, to: string): boolean {

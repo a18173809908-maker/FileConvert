@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { FileText, Image, Settings, PenTool, BookOpen, ChevronDown, ChevronRight, Flame } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CONVERSION_CATEGORIES, isConversionSupported } from '@/lib/conversion-config'
+import { ImageToolDialog } from '@/components/image-tool-dialog'
+import { ImageToolId, isImageTool } from '@/lib/image-tools'
 
 const iconMap: Record<string, React.ElementType> = {
   'file-text': FileText,
@@ -21,6 +23,7 @@ interface SidebarNavProps {
 
 export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNavProps) {
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['pdf'])
+  const [activeTool, setActiveTool] = useState<ImageToolId | null>(null)
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => 
@@ -80,10 +83,19 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
                       const isHot = index === 0 && category.id === 'pdf'
                       const supported = isConversionSupported(conversion.from, conversion.to)
 
+                      const handleClick = () => {
+                        // 图片工具：打开 Dialog 而不是切换转换方向
+                        if (conversion.from === 'image' && isImageTool(conversion.to)) {
+                          setActiveTool(conversion.to)
+                          return
+                        }
+                        onSelectConversion(conversionId, conversion.from, conversion.to)
+                      }
+
                       return (
                         <button
                           key={conversionId}
-                          onClick={() => onSelectConversion(conversionId, conversion.from, conversion.to)}
+                          onClick={handleClick}
                           title={supported ? undefined : '暂未支持，敬请期待'}
                           className={cn(
                             "flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm transition-colors",
@@ -130,6 +142,8 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
           </p>
         </div>
       </div>
+
+      <ImageToolDialog tool={activeTool} onClose={() => setActiveTool(null)} />
     </aside>
   )
 }
