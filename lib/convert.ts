@@ -21,6 +21,11 @@ const SERVER_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ['svg', 'png'], ['svg', 'jpg'],
   ['bmp', 'png'], ['bmp', 'jpg'], ['bmp', 'webp'],
   ['gif', 'png'], ['gif', 'jpg'], ['gif', 'webp'],
+  // 服务端重型（LibreOffice）
+  ['docx', 'pdf'], ['doc', 'pdf'],
+  ['doc', 'docx'], ['docx', 'doc'],
+  ['html', 'pdf'], ['htm', 'pdf'],
+  ['epub', 'pdf'],
 ]
 
 function canConvertClient(from: string, to: string): boolean {
