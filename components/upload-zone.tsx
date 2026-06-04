@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { Upload, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { INPUT_FORMAT_TAGS, OUTPUT_FORMATS, isFormatAllowed, isFileSizeAllowed, getFileExtension } from '@/lib/conversion-config'
+import { SettingsDialog } from '@/components/settings-dialog'
 
 interface UploadZoneProps {
   selectedFrom: string
@@ -14,6 +15,7 @@ interface UploadZoneProps {
 
 export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelected }: UploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const handleMoreFormats = useCallback(() => {
     const input = document.createElement('input')
@@ -34,7 +36,7 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
   }, [onFilesSelected])
 
   const handleConversionSettings = useCallback(() => {
-    alert('转换设置功能开发中，敬请期待')
+    setSettingsOpen(true)
   }, [])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -210,6 +212,8 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
           转换设置
         </button>
       </div>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }

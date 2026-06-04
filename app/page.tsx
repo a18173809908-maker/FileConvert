@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Header } from '@/components/header'
 import { SidebarNav } from '@/components/sidebar-nav'
 import { UploadZone } from '@/components/upload-zone'
@@ -8,22 +9,39 @@ import { ConversionQueue } from '@/components/conversion-queue'
 import { AccountPanel } from '@/components/account-panel'
 import { QueueItem, getConversionPoints, getFileExtension } from '@/lib/conversion-config'
 import { convertFile, canConvert, getConvertedFileName } from '@/lib/convert'
+import { useApp } from '@/lib/store'
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9)
 }
 
-export default function HomePage() {
-  const [points, setPoints] = useState(120)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [consecutiveDays, setConsecutiveDays] = useState(0)
-  const [hasSignedToday, setHasSignedToday] = useState(false)
+function HomePageInner() {
+  const {
+    points, setPoints,
+    isLoggedIn, setIsLoggedIn,
+    consecutiveDays, setConsecutiveDays,
+    hasSignedToday, setHasSignedToday,
+  } = useApp()
+
+  const searchParams = useSearchParams()
 
   const [selectedConversion, setSelectedConversion] = useState<string | null>('pdf-docx')
   const [selectedFrom, setSelectedFrom] = useState('pdf')
   const [selectedTo, setSelectedTo] = useState('docx')
 
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
+
+  // 从 URL ?conversion=pdf-docx 读取预设的转换方向（格式中心跳转过来）
+  useEffect(() => {
+    const conv = searchParams.get('conversion')
+    if (!conv) return
+    const [from, to] = conv.split('-')
+    if (from && to) {
+      setSelectedConversion(conv)
+      setSelectedFrom(from)
+      setSelectedTo(to)
+    }
+  }, [searchParams])
 
   const handleSelectConversion = useCallback((conversionId: string, from: string, to: string) => {
     setSelectedConversion(conversionId)
@@ -101,7 +119,14 @@ export default function HomePage() {
       updated
         .filter(item => item.status === 'converting' && item.sourceFile)
         .forEach(item => {
-          convertFile(item.sourceFile!, item.fromFormat, item.toFormat)
+          convertFile(item.sourceFile!, item.fromFormat, item.toFormat, {
+            onProgress: (current, total) => {
+              const pct = Math.round((current / total) * 100)
+              setQueueItems(prev => prev.map(i =>
+                i.id === item.id ? { ...i, progress: pct } : i
+              ))
+            },
+          })
             .then(blob => {
               setQueueItems(prev => prev.map(i =>
                 i.id === item.id
@@ -138,16 +163,18 @@ export default function HomePage() {
   }, [handleFilesSelected])
 
   const handleSignIn = useCallback(() => {
+    if (isLoggedIn) return
     setIsLoggedIn(true)
     setPoints(prev => prev + 20)
-  }, [])
+  }, [isLoggedIn, setIsLoggedIn, setPoints])
 
   const handleCheckIn = useCallback(() => {
+    if (hasSignedToday) return
     setHasSignedToday(true)
     setConsecutiveDays(prev => prev + 1)
     const bonus = 5 + (consecutiveDays >= 1 ? consecutiveDays * 2 : 0)
     setPoints(prev => prev + bonus)
-  }, [consecutiveDays])
+  }, [consecutiveDays, hasSignedToday, setConsecutiveDays, setHasSignedToday, setPoints])
 
   const handleCopyInviteLink = useCallback(() => {
     const inviteLink = 'https://fileconvert.app/invite/' + generateId()
@@ -163,7 +190,7 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Header points={points} onSignIn={handleSignIn} />
+      <Header />
 
       <div className="flex flex-1">
         <SidebarNav
@@ -203,5 +230,14 @@ export default function HomePage() {
         />
       </div>
     </div>
+  )
+}
+
+export default function HomePage() {
+  // useSearchParams 需要在 Suspense 边界内
+  return (
+    <Suspense fallback={null}>
+      <HomePageInner />
+    </Suspense>
   )
 }

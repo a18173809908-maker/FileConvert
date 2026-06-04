@@ -2,13 +2,17 @@
 
 import Link from 'next/link'
 import { FileText } from 'lucide-react'
+import { useApp } from '@/lib/store'
 
-interface HeaderProps {
-  points?: number
-  onSignIn?: () => void
-}
+export function Header() {
+  const { points, setIsLoggedIn, setPoints, isLoggedIn } = useApp()
 
-export function Header({ points = 128, onSignIn }: HeaderProps) {
+  const handleSignIn = () => {
+    if (isLoggedIn) return
+    setIsLoggedIn(true)
+    setPoints(prev => prev + 20)
+  }
+
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
       <div className="flex items-center gap-8">
@@ -22,30 +26,10 @@ export function Header({ points = 128, onSignIn }: HeaderProps) {
 
         {/* Navigation */}
         <nav className="hidden items-center gap-6 md:flex">
-          <Link 
-            href="/" 
-            className="text-sm font-medium text-primary"
-          >
-            转换台
-          </Link>
-          <Link 
-            href="/formats" 
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            格式中心
-          </Link>
-          <Link 
-            href="/download" 
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            应用下载
-          </Link>
-          <Link 
-            href="/help" 
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            帮助
-          </Link>
+          <Link href="/" className="text-sm font-medium text-primary">转换台</Link>
+          <Link href="/formats" className="text-sm text-muted-foreground hover:text-foreground">格式中心</Link>
+          <Link href="/download" className="text-sm text-muted-foreground hover:text-foreground">应用下载</Link>
+          <Link href="/help" className="text-sm text-muted-foreground hover:text-foreground">帮助</Link>
         </nav>
       </div>
 
@@ -61,8 +45,11 @@ export function Header({ points = 128, onSignIn }: HeaderProps) {
         </div>
 
         {/* Login Button */}
-        <button onClick={onSignIn} className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          登录
+        <button
+          onClick={handleSignIn}
+          className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          {isLoggedIn ? '已登录' : '登录'}
         </button>
       </div>
     </header>

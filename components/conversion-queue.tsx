@@ -56,7 +56,9 @@ function StatusBadge({ status, progress, errorMessage }: { status: QueueItem['st
     return (
       <div className="flex items-center gap-2">
         <span className="text-sm text-primary">转换中</span>
-        <span className="text-sm text-muted-foreground">{progress || 0}%</span>
+        {progress && progress > 0 ? (
+          <span className="text-sm text-muted-foreground">{progress}%</span>
+        ) : null}
       </div>
     )
   }
@@ -170,10 +172,14 @@ export function ConversionQueue({
                 <StatusBadge status={item.status} progress={item.progress} errorMessage={item.errorMessage} />
                 {item.status === 'converting' && (
                   <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${item.progress || 0}%` }}
-                    />
+                    {item.progress && item.progress > 0 ? (
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    ) : (
+                      <div className="h-full w-1/3 animate-[indeterminate_1.2s_infinite_linear] bg-primary" />
+                    )}
                   </div>
                 )}
                 {item.status === 'failed' && item.errorMessage && (

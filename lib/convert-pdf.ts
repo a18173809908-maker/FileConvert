@@ -17,18 +17,27 @@ async function loadPdfjs() {
   return pdfjsPromise
 }
 
+export interface PdfToImageOptions {
+  scale?: number
+  quality?: number
+  /** 每渲染完一页回调一次 (currentPage, totalPages) */
+  onProgress?: (current: number, total: number) => void
+}
+
 export async function pdfToImageBlob(
   file: File,
   format: 'jpg' | 'jpeg' | 'png',
-  scale = 2,
+  options: PdfToImageOptions = {},
 ): Promise<Blob> {
+  const { scale = 2, quality = 0.92, onProgress } = options
+
   const pdfjsLib = await loadPdfjs()
   const data = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data }).promise
 
   const ext = format === 'png' ? 'png' : 'jpg'
   const mime = ext === 'png' ? 'image/png' : 'image/jpeg'
-  const quality = ext === 'jpg' ? 0.92 : undefined
+  const q = ext === 'jpg' ? quality : undefined
 
   const blobs: Blob[] = []
   try {
@@ -47,11 +56,12 @@ export async function pdfToImageBlob(
         canvas.toBlob(
           (b) => (b ? resolve(b) : reject(new Error('Canvas 导出失败'))),
           mime,
-          quality,
+          q,
         )
       })
       blobs.push(blob)
       page.cleanup()
+      onProgress?.(i, pdf.numPages)
     }
   } finally {
     await pdf.cleanup()

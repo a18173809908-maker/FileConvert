@@ -1,10 +1,8 @@
-import { pdfToImageBlob } from './convert-pdf'
+import { pdfToImageBlob, PdfToImageOptions } from './convert-pdf'
+import { readSettingsSnapshot } from './store'
 
-// 浏览器端 Canvas 可读的图片格式
 const CANVAS_READABLE = new Set(['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'])
-// 浏览器端 Canvas 可写的图片格式
 const CANVAS_WRITABLE = new Set(['jpg', 'jpeg', 'png', 'webp'])
-// 浏览器端 pdfjs 支持的 PDF → 图片
 const PDF_TO_IMAGE = new Set(['jpg', 'jpeg', 'png'])
 
 const MIME_MAP: Record<string, string> = {
@@ -14,7 +12,6 @@ const MIME_MAP: Record<string, string> = {
   webp: 'image/webp',
 }
 
-// 服务端额外支持的转换对（与 lib/server/converters.ts 保持同步）
 const SERVER_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ['txt', 'pdf'],
   ['txt', 'docx'],
@@ -38,9 +35,6 @@ function canConvertServer(from: string, to: string): boolean {
   return SERVER_PAIRS.some(([a, b]) => a === f && b === t)
 }
 
-/**
- * 是否支持该格式对的转换（浏览器端或服务端任一支持即可）
- */
 export function canConvert(from: string, to: string): boolean {
   const f = from.toLowerCase()
   const t = to.toLowerCase()
@@ -61,7 +55,7 @@ async function fileToImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-function imageToBlob(img: HTMLImageElement, format: string): Promise<Blob> {
+function imageToBlob(img: HTMLImageElement, format: string, quality: number): Promise<Blob> {
   const canvas = document.createElement('canvas')
   canvas.width = img.naturalWidth
   canvas.height = img.naturalHeight
@@ -72,7 +66,7 @@ function imageToBlob(img: HTMLImageElement, format: string): Promise<Blob> {
   ctx.drawImage(img, 0, 0)
 
   const mimeType = MIME_MAP[format] || 'image/png'
-  const quality = (format === 'jpg' || format === 'jpeg') ? 0.92 : undefined
+  const q = (format === 'jpg' || format === 'jpeg' || format === 'webp') ? quality : undefined
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -81,7 +75,7 @@ function imageToBlob(img: HTMLImageElement, format: string): Promise<Blob> {
         else reject(new Error('图片转换失败'))
       },
       mimeType,
-      quality,
+      q,
     )
   })
 }
@@ -102,19 +96,36 @@ async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
   return await res.blob()
 }
 
+export interface ConvertOptions {
+  /** PDF → 图片 每页渲染完毕回调 */
+  onProgress?: (current: number, total: number) => void
+}
+
 /**
- * 统一转换入口：能在浏览器端走 Canvas 的优先本地处理，否则走 /api/convert
+ * 统一转换入口：能在浏览器端走 Canvas 的优先本地处理，否则走 /api/convert。
+ * 质量/倍数等参数从全局设置读取。
  */
-export async function convertFile(file: File, fromFormat: string, toFormat: string): Promise<Blob> {
+export async function convertFile(
+  file: File,
+  fromFormat: string,
+  toFormat: string,
+  options: ConvertOptions = {},
+): Promise<Blob> {
   const f = fromFormat.toLowerCase()
   const t = toFormat.toLowerCase()
+  const settings = readSettingsSnapshot()
 
   if (canConvertClient(f, t)) {
     if (f === 'pdf') {
-      return pdfToImageBlob(file, t as 'jpg' | 'jpeg' | 'png')
+      const pdfOpts: PdfToImageOptions = {
+        scale: settings.pdfScale,
+        quality: settings.imageQuality,
+        onProgress: options.onProgress,
+      }
+      return pdfToImageBlob(file, t as 'jpg' | 'jpeg' | 'png', pdfOpts)
     }
     const img = await fileToImage(file)
-    return imageToBlob(img, t)
+    return imageToBlob(img, t, settings.imageQuality)
   }
 
   if (canConvertServer(f, t)) {
@@ -124,18 +135,15 @@ export async function convertFile(file: File, fromFormat: string, toFormat: stri
   throw new Error(`暂不支持 ${f.toUpperCase()} → ${t.toUpperCase()}`)
 }
 
-// 兼容旧调用：仅图片转换
+// 保留兼容旧调用
 export async function convertImage(file: File, toFormat: string): Promise<Blob> {
   const img = await fileToImage(file)
-  return imageToBlob(img, toFormat)
+  return imageToBlob(img, toFormat, readSettingsSnapshot().imageQuality)
 }
 
 export function getConvertedFileName(originalName: string, toFormat: string, blob?: Blob): string {
   const dotIndex = originalName.lastIndexOf('.')
   const baseName = dotIndex > 0 ? originalName.substring(0, dotIndex) : originalName
-  // 多页 PDF→图片 的结果被打包为 ZIP，文件名后缀也要相应改成 .zip
-  const ext = blob?.type === 'application/zip'
-    ? 'zip'
-    : toFormat.toLowerCase()
+  const ext = blob?.type === 'application/zip' ? 'zip' : toFormat.toLowerCase()
   return `${baseName}.${ext}`
 }
