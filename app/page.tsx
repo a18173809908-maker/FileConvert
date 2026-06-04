@@ -7,7 +7,7 @@ import { UploadZone } from '@/components/upload-zone'
 import { ConversionQueue } from '@/components/conversion-queue'
 import { AccountPanel } from '@/components/account-panel'
 import { QueueItem, getConversionPoints, getFileExtension } from '@/lib/conversion-config'
-import { convertImage, canConvert, getConvertedFileName } from '@/lib/convert'
+import { convertFile, canConvert, getConvertedFileName } from '@/lib/convert'
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9)
@@ -34,6 +34,11 @@ export default function HomePage() {
   const handleSelectTo = useCallback((format: string) => {
     setSelectedTo(format)
     setSelectedConversion(`${selectedFrom}-${format}`)
+    setQueueItems(prev => prev.map(item =>
+      item.status === 'queued'
+        ? { ...item, toFormat: format, points: getConversionPoints(item.fromFormat, format) }
+        : item
+    ))
   }, [selectedFrom])
 
   const handleFilesSelected = useCallback((files: File[]) => {
@@ -64,7 +69,7 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = getConvertedFileName(item.fileName, item.toFormat)
+    a.download = getConvertedFileName(item.fileName, item.toFormat, item.resultBlob)
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -81,17 +86,22 @@ export default function HomePage() {
       const hasQueued = prev.some(item => item.status === 'queued')
       if (!hasQueued) return prev
 
-      const updated = prev.map(item =>
-        item.status === 'queued'
-          ? { ...item, status: 'converting' as const, progress: 0 }
-          : item
-      )
+      const updated = prev.map(item => {
+        if (item.status !== 'queued') return item
+        if (!item.sourceFile) {
+          return { ...item, status: 'failed' as const, errorMessage: '未找到源文件，请重新上传' }
+        }
+        if (!canConvert(item.fromFormat, item.toFormat)) {
+          const msg = `暂不支持 ${item.fromFormat.toUpperCase()} → ${item.toFormat.toUpperCase()}`
+          return { ...item, status: 'failed' as const, errorMessage: msg }
+        }
+        return { ...item, status: 'converting' as const, progress: 0 }
+      })
 
-      const convertingItems = updated.filter(item => item.status === 'converting')
-
-      convertingItems.forEach(item => {
-        if (item.sourceFile && canConvert(item.fromFormat, item.toFormat)) {
-          convertImage(item.sourceFile, item.toFormat)
+      updated
+        .filter(item => item.status === 'converting' && item.sourceFile)
+        .forEach(item => {
+          convertFile(item.sourceFile!, item.fromFormat, item.toFormat)
             .then(blob => {
               setQueueItems(prev => prev.map(i =>
                 i.id === item.id
@@ -106,21 +116,7 @@ export default function HomePage() {
                   : i
               ))
             })
-        } else if (!item.sourceFile) {
-          setQueueItems(prev => prev.map(i =>
-            i.id === item.id
-              ? { ...i, status: 'failed' as const, errorMessage: '未找到源文件，请重新上传' }
-              : i
-          ))
-        } else {
-          const msg = `${item.fromFormat.toUpperCase()} → ${item.toFormat.toUpperCase()} 当前仅支持图片格式互转，文档/PDF/电子书转换需要使用后端服务`
-          setQueueItems(prev => prev.map(i =>
-            i.id === item.id
-              ? { ...i, status: 'failed' as const, errorMessage: msg }
-              : i
-          ))
-        }
-      })
+        })
 
       return updated
     })
