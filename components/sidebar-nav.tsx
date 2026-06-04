@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import { CONVERSION_CATEGORIES, isConversionSupported } from '@/lib/conversion-config'
 import { ImageToolDialog } from '@/components/image-tool-dialog'
 import { ImageToolId, isImageTool } from '@/lib/image-tools'
+import { PdfToolDialog } from '@/components/pdf-tool-dialog'
+import { PdfToolId, isPdfTool } from '@/lib/pdf-tools'
 
 const iconMap: Record<string, React.ElementType> = {
   'file-text': FileText,
@@ -24,6 +26,7 @@ interface SidebarNavProps {
 export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNavProps) {
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['pdf'])
   const [activeTool, setActiveTool] = useState<ImageToolId | null>(null)
+  const [activePdfTool, setActivePdfTool] = useState<PdfToolId | null>(null)
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => 
@@ -89,6 +92,11 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
                           setActiveTool(conversion.to)
                           return
                         }
+                        // PDF 工具：同样开 Dialog
+                        if (conversion.from === 'pdf' && isPdfTool(conversion.to)) {
+                          setActivePdfTool(conversion.to)
+                          return
+                        }
                         onSelectConversion(conversionId, conversion.from, conversion.to)
                       }
 
@@ -144,6 +152,7 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
       </div>
 
       <ImageToolDialog tool={activeTool} onClose={() => setActiveTool(null)} />
+      <PdfToolDialog tool={activePdfTool} onClose={() => setActivePdfTool(null)} />
     </aside>
   )
 }

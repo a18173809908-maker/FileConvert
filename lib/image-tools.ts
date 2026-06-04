@@ -75,6 +75,36 @@ export async function resizeImage(file: File, opts: ResizeOptions): Promise<Blob
   return canvasToBlob(canvas, opts.format, opts.quality ?? 0.92)
 }
 
+// ---------- 裁剪 ----------
+
+export interface CropOptions {
+  /** 源图自然像素坐标 */
+  x: number
+  y: number
+  width: number
+  height: number
+  format: OutputFormat
+  quality?: number
+}
+
+export async function cropImage(file: File, opts: CropOptions): Promise<Blob> {
+  const img = await fileToImage(file)
+  const sx = Math.max(0, Math.round(opts.x))
+  const sy = Math.max(0, Math.round(opts.y))
+  const sw = Math.max(1, Math.min(Math.round(opts.width), img.naturalWidth - sx))
+  const sh = Math.max(1, Math.min(Math.round(opts.height), img.naturalHeight - sy))
+
+  const canvas = document.createElement('canvas')
+  canvas.width = sw
+  canvas.height = sh
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas 上下文创建失败')
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
+  return canvasToBlob(canvas, opts.format, opts.quality ?? 0.92)
+}
+
 // ---------- 旋转 ----------
 
 export interface RotateOptions {

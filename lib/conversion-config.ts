@@ -59,6 +59,9 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
       { from: 'png', to: 'pdf', points: 2, label: 'PNG → PDF' },
       { from: 'pdf', to: 'txt', points: 5, label: 'PDF → TXT' },
       { from: 'txt', to: 'pdf', points: 2, label: 'TXT → PDF' },
+      { from: 'pdf', to: 'merge', points: 2, label: 'PDF 合并' },
+      { from: 'pdf', to: 'split', points: 2, label: 'PDF 拆分' },
+      { from: 'pdf', to: 'rotate', points: 1, label: 'PDF 旋转' },
     ]
   },
   {
@@ -163,7 +166,9 @@ const SUPPORTED_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ['jpg', 'pdf'], ['jpeg', 'pdf'], ['png', 'pdf'], ['webp', 'pdf'],
   ['svg', 'png'], ['svg', 'jpg'],
   // 图片工具（客户端 Dialog 实现）
-  ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'],
+  ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'], ['image', 'crop'],
+  // PDF 工具（客户端 pdf-lib Dialog 实现）
+  ['pdf', 'merge'], ['pdf', 'split'], ['pdf', 'rotate'],
 ]
 
 export function isConversionSupported(from: string, to: string): boolean {

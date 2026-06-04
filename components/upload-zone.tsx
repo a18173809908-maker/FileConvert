@@ -42,19 +42,10 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
   const [isDragging, setIsDragging] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  const handleMoreFormats = useCallback(() => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.multiple = false
-    input.accept = '.*'
-    input.onchange = (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files || [])
-      const file = files[0]
-      if (file && validateAndReport(file)) {
-        onFilesSelected([file])
-      }
-    }
-    input.click()
+  // 对一组文件分别校验，通过的一起回调
+  const acceptFiles = useCallback((files: File[]) => {
+    const valid = files.filter(validateAndReport)
+    if (valid.length > 0) onFilesSelected(valid)
   }, [onFilesSelected])
 
   const handleConversionSettings = useCallback(() => {
@@ -74,35 +65,19 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    
-    const files = Array.from(e.dataTransfer.files)
-    // 只取第一个文件，不支持批量
-    const file = files[0]
-    if (file) {
-      const ext = getFileExtension(file.name)
-      if (isFormatAllowed(ext) && isFileSizeAllowed(file.size, ext)) {
-        onFilesSelected([file])
-      }
-    }
-  }, [onFilesSelected])
+    acceptFiles(Array.from(e.dataTransfer.files))
+  }, [acceptFiles])
 
   const handleFileSelect = useCallback(() => {
     const input = document.createElement('input')
     input.type = 'file'
-    input.multiple = false  // 禁止多选
+    input.multiple = true
     input.accept = INPUT_FORMAT_TAGS.map(f => `.${f.toLowerCase()}`).join(',')
-    
     input.onchange = (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files || [])
-      // 只取第一个文件
-      const file = files[0]
-      if (file && validateAndReport(file)) {
-        onFilesSelected([file])
-      }
+      acceptFiles(Array.from((e.target as HTMLInputElement).files || []))
     }
-    
     input.click()
-  }, [onFilesSelected])
+  }, [acceptFiles])
 
   return (
     <div className="rounded-lg border border-border bg-card p-6">
@@ -140,7 +115,7 @@ export function UploadZone({ selectedFrom, selectedTo, onSelectTo, onFilesSelect
           </button>
         </p>
         <p className="mb-4 text-sm text-muted-foreground">
-          每次处理一个文件 · 文件全程加密传输，转换后 <span className="text-foreground">1小时</span> 自动删除
+          支持批量上传 · 文件全程加密传输，转换后 <span className="text-foreground">1小时</span> 自动删除
         </p>
 
         {/* Format Tags */}

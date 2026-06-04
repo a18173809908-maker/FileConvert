@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   compressImage,
   resizeImage,
   rotateImage,
+  cropImage,
   getImageDimensions,
 } from '@/lib/image-tools'
 import { formatFileSize, getFileExtension, isFileSizeAllowed } from '@/lib/conversion-config'
@@ -52,17 +53,39 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
   const [degrees, setDegrees] = useState(90)
   const [format, setFormat] = useState<OutputFormat>('jpg')
 
+  // 裁剪选区（自然像素坐标）
+  const [crop, setCrop] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null)
+
   // 重置 dialog 状态
   useEffect(() => {
     if (!tool) {
       setFile(null); setDims(null); setResultBlob(null)
       if (resultUrl) URL.revokeObjectURL(resultUrl)
       setResultUrl(null)
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
       setWorking(false)
       setQuality(80); setDegrees(90); setFormat('jpg')
       setKeepAspect(true)
+      setCrop(null)
     }
   }, [tool])
+
+  // 裁剪工具需要一张原图 URL 来交互
+  useEffect(() => {
+    if (tool === 'crop' && file) {
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+      setCrop(null)
+      return () => URL.revokeObjectURL(url)
+    } else {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
+    }
+  }, [tool, file])
 
   // 选好新文件，读取尺寸 & 重置结果
   useEffect(() => {
@@ -138,8 +161,15 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
         case 'rotate':
           blob = await rotateImage(file, { degrees, format, quality: quality / 100 })
           break
-        default:
-          throw new Error('该工具暂未实现')
+        case 'crop':
+          if (!crop || crop.w < 1 || crop.h < 1) {
+            throw new Error('请先在图片上拖拽选择裁剪区域')
+          }
+          blob = await cropImage(file, {
+            x: crop.x, y: crop.y, width: crop.w, height: crop.h,
+            format, quality: quality / 100,
+          })
+          break
       }
       setResultBlob(blob)
       if (resultUrl) URL.revokeObjectURL(resultUrl)
@@ -149,7 +179,7 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
     } finally {
       setWorking(false)
     }
-  }, [file, tool, quality, width, height, degrees, format, resultUrl])
+  }, [file, tool, quality, width, height, degrees, format, crop, resultUrl])
 
   const handleDownload = useCallback(() => {
     if (!resultBlob || !file) return
@@ -166,24 +196,56 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
   }, [resultBlob, file, tool, format])
 
   const title = tool ? TOOL_TITLES[tool] : ''
-  const isCropUnsupported = tool === 'crop'
+
+  // 裁剪选区交互：mousedown 起始，mousemove 更新，mouseup 结束
+  const handleCropMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imgRef.current) return
+    const rect = imgRef.current.getBoundingClientRect()
+    dragStartRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    setCrop(null)
+  }
+  const handleCropMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!dragStartRef.current || !imgRef.current || !dims) return
+    const rect = imgRef.current.getBoundingClientRect()
+    const cx = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
+    const cy = Math.max(0, Math.min(e.clientY - rect.top, rect.height))
+    const sx = Math.min(dragStartRef.current.x, cx)
+    const sy = Math.min(dragStartRef.current.y, cy)
+    const sw = Math.abs(cx - dragStartRef.current.x)
+    const sh = Math.abs(cy - dragStartRef.current.y)
+    // 显示像素 → 自然像素
+    const scale = dims.width / rect.width
+    setCrop({
+      x: Math.round(sx * scale),
+      y: Math.round(sy * scale),
+      w: Math.round(sw * scale),
+      h: Math.round(sh * scale),
+    })
+  }
+  const handleCropMouseUp = () => { dragStartRef.current = null }
+
+  // 把自然像素坐标换算回当前显示像素，用于绘制选区遮罩
+  const cropOverlayStyle = (() => {
+    if (!crop || !imgRef.current || !dims) return null
+    const rect = imgRef.current.getBoundingClientRect()
+    const scale = rect.width / dims.width
+    return {
+      left: crop.x * scale,
+      top: crop.y * scale,
+      width: crop.w * scale,
+      height: crop.h * scale,
+    }
+  })()
 
   return (
     <Dialog open={tool !== null} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {isCropUnsupported
-              ? '裁剪功能开发中，敬请期待'
-              : '全部在浏览器本地处理，文件不会上传'}
-          </DialogDescription>
+          <DialogDescription>全部在浏览器本地处理，文件不会上传</DialogDescription>
         </DialogHeader>
 
-        {isCropUnsupported ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">敬请期待</div>
-        ) : (
-          <div className="space-y-4">
+        <div className="space-y-4">
             {/* 上传区 */}
             {!file ? (
               <button
@@ -280,6 +342,42 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
                   </div>
                 )}
 
+                {tool === 'crop' && previewUrl && (
+                  <div className="space-y-2">
+                    <Label>在图片上拖拽框选裁剪区域</Label>
+                    <div
+                      className="relative inline-block max-w-full select-none"
+                      onMouseDown={handleCropMouseDown}
+                      onMouseMove={handleCropMouseMove}
+                      onMouseUp={handleCropMouseUp}
+                      onMouseLeave={handleCropMouseUp}
+                      style={{ cursor: 'crosshair' }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        ref={imgRef}
+                        src={previewUrl}
+                        alt="待裁剪"
+                        className="block max-h-80 w-auto"
+                        draggable={false}
+                      />
+                      {cropOverlayStyle && (
+                        <div
+                          className="pointer-events-none absolute border-2 border-primary bg-primary/10"
+                          style={cropOverlayStyle}
+                        />
+                      )}
+                    </div>
+                    {crop ? (
+                      <p className="text-xs text-muted-foreground">
+                        选区：{crop.w} × {crop.h} px（从 {crop.x}, {crop.y} 开始）
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">尚未选择，按住鼠标在图片上拖动</p>
+                    )}
+                  </div>
+                )}
+
                 {tool === 'rotate' && (
                   <div className="space-y-2">
                     <Label>旋转角度</Label>
@@ -362,7 +460,6 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
               </>
             )}
           </div>
-        )}
       </DialogContent>
     </Dialog>
   )
