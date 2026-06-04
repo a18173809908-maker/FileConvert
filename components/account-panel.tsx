@@ -29,14 +29,44 @@ export function AccountPanel() {
     }
   }
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (!user) return
     const link = `${window.location.origin}/?ref=${user.inviteCode}`
-    navigator.clipboard.writeText(link).then(() => {
+    const onSuccess = () => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
       toast.success('邀请链接已复制')
-    }).catch(() => toast.error('复制失败，请手动复制：' + link))
+    }
+
+    // 优先用 Clipboard API（仅 HTTPS 或 localhost 可用）
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(link)
+        onSuccess()
+        return
+      } catch {
+        // 失败时回落到下面的传统方案
+      }
+    }
+
+    // HTTP 下用 textarea + execCommand 兜底
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = link
+      ta.style.position = 'fixed'
+      ta.style.top = '0'
+      ta.style.left = '0'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(ta)
+      if (ok) onSuccess()
+      else toast.error('复制失败，请手动复制：' + link)
+    } catch {
+      toast.error('复制失败，请手动复制：' + link)
+    }
   }
 
   const points = user?.points ?? 0
