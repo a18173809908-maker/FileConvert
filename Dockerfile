@@ -62,8 +62,12 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors
     rm -rf /var/lib/apt/lists/*
 
 # pdf2docx：PDF → DOCX 兜底引擎，~150MB
+# 用清华 pip 镜像避免国内拉 PyPI 慢
 RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir pdf2docx && \
+    /opt/venv/bin/pip install --no-cache-dir \
+        -i https://pypi.tuna.tsinghua.edu.cn/simple \
+        --trusted-host pypi.tuna.tsinghua.edu.cn \
+        pdf2docx && \
     /opt/venv/bin/pip cache purge 2>/dev/null || true
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHON_BIN=/opt/venv/bin/python3 \
