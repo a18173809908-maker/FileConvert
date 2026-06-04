@@ -5,7 +5,12 @@
 FROM node:20-slim AS deps
 WORKDIR /app
 # better-sqlite3 的预编译走 GitHub Releases，国内拉超时；装编译工具兜底
-RUN apt-get update && \
+# 换阿里云 Debian 镜像避免 deb.debian.org 国内访问慢
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' \
+        /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' \
+        /etc/apt/sources.list && \
+    apt-get update && \
     apt-get install -y --no-install-recommends python3 make g++ ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
