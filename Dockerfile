@@ -14,11 +14,11 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors
     apt-get install -y --no-install-recommends python3 make g++ ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-# 增大 npm 网络超时；用国内 npm 镜像加速依赖下载
-RUN npm config set registry https://registry.npmmirror.com && \
-    npm config set fetch-timeout 600000 && \
+# 增大 npm 网络超时；只换 better-sqlite3 的预编译源走 npmmirror，避免影响 sharp 的 @img/* 平台包解析
+RUN npm config set fetch-timeout 600000 && \
     npm config set fetch-retries 5
-RUN npm ci --no-audit --no-fund --build-from-source=better-sqlite3
+ENV npm_config_better_sqlite3_binary_host_mirror=https://registry.npmmirror.com/-/binary/better-sqlite3
+RUN npm ci --no-audit --no-fund
 
 # ---------- 2) 构建层 ----------
 FROM node:20-slim AS builder
