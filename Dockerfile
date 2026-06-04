@@ -38,11 +38,29 @@ ENV NODE_ENV=production \
     NODE_OPTIONS="--max-old-space-size=2048" \
     CONVERT_CONCURRENCY=2 \
     CONVERT_ACQUIRE_TIMEOUT_MS=15000 \
+    HEAVY_CONCURRENCY=1 \
+    HEAVY_ACQUIRE_TIMEOUT_MS=20000 \
+    LIBREOFFICE_TIMEOUT_MS=60000 \
     RATE_LIMIT_BURST=5 \
     RATE_LIMIT_PER_SEC=0.5
 
+# 安装 LibreOffice（仅 Writer + 核心）+ 中文字体
+# 用阿里云镜像加速 apt
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' \
+        /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' \
+        /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libreoffice-core \
+        libreoffice-writer \
+        fonts-wqy-zenhei \
+        fonts-wqy-microhei \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system --gid 1001 nodejs && \
-    useradd --system --uid 1001 --gid nodejs nextjs
+    useradd --system --uid 1001 --gid nodejs --create-home --home-dir /home/nextjs nextjs
 
 # Next.js standalone 产物
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

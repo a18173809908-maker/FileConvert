@@ -51,8 +51,7 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: 'PDF工具',
     icon: 'file-text',
     conversions: [
-      { from: 'pdf', to: 'docx', points: 5, label: 'PDF → Word' },
-      { from: 'docx', to: 'pdf', points: 2, label: 'Word → PDF' },
+      { from: 'docx', to: 'pdf', points: 5, label: 'Word → PDF' },
       { from: 'pdf', to: 'jpg', points: 5, label: 'PDF → JPG' },
       { from: 'pdf', to: 'png', points: 5, label: 'PDF → PNG' },
       { from: 'jpg', to: 'pdf', points: 2, label: 'JPG → PDF' },
@@ -117,7 +116,6 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     icon: 'book-open',
     conversions: [
       { from: 'epub', to: 'pdf', points: 5, label: 'EPUB → PDF' },
-      { from: 'pdf', to: 'epub', points: 5, label: 'PDF → EPUB' },
     ]
   },
 ]
@@ -169,6 +167,11 @@ const SUPPORTED_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'], ['image', 'crop'],
   // PDF 工具（客户端 pdf-lib Dialog 实现）
   ['pdf', 'merge'], ['pdf', 'split'], ['pdf', 'rotate'],
+  // 服务端重型（LibreOffice）
+  ['docx', 'pdf'], ['doc', 'pdf'],
+  ['doc', 'docx'], ['docx', 'doc'],
+  ['html', 'pdf'], ['htm', 'pdf'],
+  ['epub', 'pdf'],
 ]
 
 export function isConversionSupported(from: string, to: string): boolean {

@@ -47,23 +47,36 @@ class Semaphore {
   }
 }
 
-// 转换并发：2C4G，sharp/pdfjs/pdf-lib 都吃 CPU，2 并发匹配 CPU 核数
+// 轻量级转换并发：sharp/pdf-lib/mammoth/docx/unpdf，2 并发匹配 CPU 核数
 const CONCURRENCY = Number(process.env.CONVERT_CONCURRENCY ?? '2')
-// 队列等待最长时间
 const ACQUIRE_TIMEOUT_MS = Number(process.env.CONVERT_ACQUIRE_TIMEOUT_MS ?? '15000')
 
+// 重型转换并发：LibreOffice 子进程，单次峰值 500-800MB，2C4G 只能 1 并发
+const HEAVY_CONCURRENCY = Number(process.env.HEAVY_CONCURRENCY ?? '1')
+const HEAVY_ACQUIRE_TIMEOUT_MS = Number(process.env.HEAVY_ACQUIRE_TIMEOUT_MS ?? '20000')
+
 const semaphore = new Semaphore(CONCURRENCY)
+const heavySemaphore = new Semaphore(HEAVY_CONCURRENCY)
 
 export function semaphoreStats() {
-  return semaphore.stats()
+  return {
+    light: semaphore.stats(),
+    heavy: heavySemaphore.stats(),
+  }
 }
 
-/**
- * 包装一段重活，自动 acquire/release。
- * 拿不到令牌时抛 SEMAPHORE_TIMEOUT。
- */
 export async function withConcurrencyLimit<T>(fn: () => Promise<T>): Promise<T> {
   const release = await semaphore.acquire(ACQUIRE_TIMEOUT_MS)
+  try {
+    return await fn()
+  } finally {
+    release()
+  }
+}
+
+/** 包装一次"重型"转换（LibreOffice 类）。独立队列，互不影响。 */
+export async function withHeavyLimit<T>(fn: () => Promise<T>): Promise<T> {
+  const release = await heavySemaphore.acquire(HEAVY_ACQUIRE_TIMEOUT_MS)
   try {
     return await fn()
   } finally {

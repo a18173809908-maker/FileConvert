@@ -4,6 +4,7 @@ import mammoth from 'mammoth'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
 import sharp from 'sharp'
 import { extractText, getDocumentProxy } from 'unpdf'
+import { convertWithLibreOffice } from './libreoffice'
 
 export interface ConvertResult {
   buffer: Buffer
@@ -20,12 +21,31 @@ const SERVER_PAIRS: Array<[string, string]> = [
   ['svg', 'png'], ['svg', 'jpg'],
   ['bmp', 'png'], ['bmp', 'jpg'], ['bmp', 'webp'],
   ['gif', 'png'], ['gif', 'jpg'], ['gif', 'webp'],
+  // 走 LibreOffice
+  ['docx', 'pdf'], ['doc', 'pdf'],
+  ['doc', 'docx'], ['docx', 'doc'],
+  ['html', 'pdf'], ['htm', 'pdf'],
+  ['epub', 'pdf'],
+]
+
+// 需要走 LibreOffice 的重型转换（独立信号量 = 1）
+const HEAVY_PAIRS: Array<[string, string]> = [
+  ['docx', 'pdf'], ['doc', 'pdf'],
+  ['doc', 'docx'], ['docx', 'doc'],
+  ['html', 'pdf'], ['htm', 'pdf'],
+  ['epub', 'pdf'],
 ]
 
 export function canConvertServer(from: string, to: string): boolean {
   const f = from.toLowerCase()
   const t = to.toLowerCase()
   return SERVER_PAIRS.some(([a, b]) => a === f && b === t)
+}
+
+export function isHeavyConversion(from: string, to: string): boolean {
+  const f = from.toLowerCase()
+  const t = to.toLowerCase()
+  return HEAVY_PAIRS.some(([a, b]) => a === f && b === t)
 }
 
 export function getServerSupportedPairs(): Array<[string, string]> {
@@ -167,6 +187,13 @@ async function imageViaSharp(input: Buffer, to: string): Promise<ConvertResult> 
   return { buffer, mimeType: mime }
 }
 
+// ---------- LibreOffice 转换 ----------
+
+async function viaLibreOffice(input: Buffer, fromExt: string, targetExt: string, mimeType: string): Promise<ConvertResult> {
+  const buffer = await convertWithLibreOffice(input, fromExt, targetExt)
+  return { buffer, mimeType }
+}
+
 // ---------- 调度 ----------
 
 export async function convertOnServer(
@@ -181,6 +208,7 @@ export async function convertOnServer(
     throw new Error(`不支持的转换: ${f} → ${t}`)
   }
 
+  // 轻量级
   if (f === 'txt' && t === 'pdf') return txtToPdf(input)
   if (f === 'txt' && t === 'docx') return txtToDocx(input)
   if (f === 'docx' && t === 'txt') return docxToTxt(input)
@@ -189,6 +217,17 @@ export async function convertOnServer(
   if (['svg', 'bmp', 'gif'].includes(f) && ['png', 'jpg', 'jpeg', 'webp'].includes(t)) {
     return imageViaSharp(input, t)
   }
+
+  // 重型（LibreOffice）
+  const docxMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  const docMime = 'application/msword'
+  const pdfMime = 'application/pdf'
+
+  if ((f === 'docx' || f === 'doc') && t === 'pdf') return viaLibreOffice(input, f, 'pdf', pdfMime)
+  if (f === 'doc' && t === 'docx') return viaLibreOffice(input, 'doc', 'docx', docxMime)
+  if (f === 'docx' && t === 'doc') return viaLibreOffice(input, 'docx', 'doc', docMime)
+  if ((f === 'html' || f === 'htm') && t === 'pdf') return viaLibreOffice(input, f, 'pdf', pdfMime)
+  if (f === 'epub' && t === 'pdf') return viaLibreOffice(input, 'epub', 'pdf', pdfMime)
 
   throw new Error(`未实现的转换: ${f} → ${t}`)
 }

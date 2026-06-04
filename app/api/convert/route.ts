@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { convertOnServer, canConvertServer } from '@/lib/server/converters'
-import { checkRateLimit, getClientIp, withConcurrencyLimit, semaphoreStats } from '@/lib/server/limiter'
+import { convertOnServer, canConvertServer, isHeavyConversion } from '@/lib/server/converters'
+import { checkRateLimit, getClientIp, withConcurrencyLimit, withHeavyLimit, semaphoreStats } from '@/lib/server/limiter'
 import { isFormatAllowed, isFileSizeAllowed, getFileExtension } from '@/lib/conversion-config'
 
 export const runtime = 'nodejs'
@@ -51,16 +51,19 @@ export async function POST(req: NextRequest) {
 
     const input = Buffer.from(await file.arrayBuffer())
 
-    // ---------- 并发限制（拿不到令牌 -> 503） ----------
+    // ---------- 并发限制（按轻/重分两个独立队列） ----------
+    const heavy = isHeavyConversion(fromFormat, toFormat)
     let result
     try {
-      result = await withConcurrencyLimit(() => convertOnServer(input, fromFormat, toFormat))
+      result = heavy
+        ? await withHeavyLimit(() => convertOnServer(input, fromFormat, toFormat))
+        : await withConcurrencyLimit(() => convertOnServer(input, fromFormat, toFormat))
     } catch (err) {
       if (err instanceof Error && err.message === 'SEMAPHORE_TIMEOUT') {
         const stats = semaphoreStats()
         return NextResponse.json(
-          { error: '服务繁忙，请稍后重试', stats },
-          { status: 503, headers: { 'Retry-After': '5' } },
+          { error: heavy ? '文档转换繁忙，请稍后重试' : '服务繁忙，请稍后重试', stats },
+          { status: 503, headers: { 'Retry-After': heavy ? '10' : '5' } },
         )
       }
       throw err
