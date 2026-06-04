@@ -44,7 +44,9 @@ export const sessionOptions: SessionOptions = {
   cookieOptions: {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    // secure 只在显式设置 COOKIE_SECURE=true 时启用（HTTPS 部署时）
+    // HTTP 访问下 secure cookie 会被浏览器丢弃，导致 session 失效
+    secure: process.env.COOKIE_SECURE === 'true',
     maxAge: 60 * 60 * 24 * 30, // 30 天
   },
 }
