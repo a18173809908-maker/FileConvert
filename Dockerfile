@@ -21,7 +21,12 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    HOSTNAME=0.0.0.0
+    HOSTNAME=0.0.0.0 \
+    NODE_OPTIONS="--max-old-space-size=2048" \
+    CONVERT_CONCURRENCY=2 \
+    CONVERT_ACQUIRE_TIMEOUT_MS=15000 \
+    RATE_LIMIT_BURST=5 \
+    RATE_LIMIT_PER_SEC=0.5
 
 RUN groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 --gid nodejs nextjs

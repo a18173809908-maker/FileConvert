@@ -80,13 +80,28 @@ function imageToBlob(img: HTMLImageElement, format: string, quality: number): Pr
   })
 }
 
-async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
+async function postConvert(file: File, toFormat: string): Promise<Response> {
   const form = new FormData()
   form.append('file', file)
   form.append('to', toFormat)
-  const res = await fetch('/api/convert', { method: 'POST', body: form })
+  return fetch('/api/convert', { method: 'POST', body: form })
+}
+
+async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
+  let res = await postConvert(file, toFormat)
+
+  // 429 / 503：按 Retry-After 等待后自动重试一次
+  if (res.status === 429 || res.status === 503) {
+    const retryAfter = Number(res.headers.get('Retry-After')) || 5
+    await new Promise(r => setTimeout(r, Math.min(retryAfter, 15) * 1000))
+    res = await postConvert(file, toFormat)
+  }
+
   if (!res.ok) {
     let message = `服务端转换失败 (${res.status})`
+    if (res.status === 429) message = '请求过于频繁，请稍后再试'
+    else if (res.status === 503) message = '服务繁忙，请稍后重试'
+    else if (res.status === 413) message = '文件超过大小限制'
     try {
       const data = await res.json()
       if (data?.error) message = data.error

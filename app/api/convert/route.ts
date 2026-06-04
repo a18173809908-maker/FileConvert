@@ -1,11 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { convertOnServer, canConvertServer } from '@/lib/server/converters'
+import { checkRateLimit, getClientIp, withConcurrencyLimit, semaphoreStats } from '@/lib/server/limiter'
 import { isFormatAllowed, isFileSizeAllowed, getFileExtension } from '@/lib/conversion-config'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
+  // ---------- 速率限制 ----------
+  const ip = getClientIp(req)
+  const rate = checkRateLimit(ip)
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: '请求过于频繁，请稍后再试' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil(rate.retryAfterMs / 1000)),
+          'X-RateLimit-Remaining': '0',
+        },
+      },
+    )
+  }
+
   try {
     const form = await req.formData()
     const file = form.get('file')
@@ -33,14 +50,30 @@ export async function POST(req: NextRequest) {
     }
 
     const input = Buffer.from(await file.arrayBuffer())
-    const { buffer, mimeType } = await convertOnServer(input, fromFormat, toFormat)
 
+    // ---------- 并发限制（拿不到令牌 -> 503） ----------
+    let result
+    try {
+      result = await withConcurrencyLimit(() => convertOnServer(input, fromFormat, toFormat))
+    } catch (err) {
+      if (err instanceof Error && err.message === 'SEMAPHORE_TIMEOUT') {
+        const stats = semaphoreStats()
+        return NextResponse.json(
+          { error: '服务繁忙，请稍后重试', stats },
+          { status: 503, headers: { 'Retry-After': '5' } },
+        )
+      }
+      throw err
+    }
+
+    const { buffer, mimeType } = result
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': mimeType,
         'Content-Length': String(buffer.length),
         'Cache-Control': 'no-store',
+        'X-RateLimit-Remaining': String(rate.remaining),
       },
     })
   } catch (err) {

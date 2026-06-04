@@ -15,9 +15,13 @@ echo "==> 移除旧容器（若存在）"
 docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
 
 echo "==> 启动新容器，监听宿主机 ${HOST_PORT} 端口"
+# 2C4G 服务器：限容器最多用 2.5GB 内存 + 1.5 核 CPU，给系统留余量
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
+  --memory="${MEM_LIMIT:-2560m}" \
+  --memory-swap="${MEM_LIMIT:-2560m}" \
+  --cpus="${CPU_LIMIT:-1.5}" \
   -p "${HOST_PORT}:${CONTAINER_PORT}" \
   "${IMAGE_NAME}:latest"
 
