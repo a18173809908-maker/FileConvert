@@ -4,8 +4,16 @@
 # ---------- 1) 依赖层 ----------
 FROM node:20-slim AS deps
 WORKDIR /app
+# better-sqlite3 的预编译走 GitHub Releases，国内拉超时；装编译工具兜底
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 make g++ ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# 增大 npm 网络超时；用国内 npm 镜像加速依赖下载
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm config set fetch-timeout 600000 && \
+    npm config set fetch-retries 5
+RUN npm ci --no-audit --no-fund --build-from-source=better-sqlite3
 
 # ---------- 2) 构建层 ----------
 FROM node:20-slim AS builder
