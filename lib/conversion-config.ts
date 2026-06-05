@@ -36,7 +36,10 @@ export const FILE_SIZE_LIMITS = {
 export const ALLOWED_FORMATS = [
   'pdf', 'doc', 'docx', 'xlsx', 'xls', 'pptx', 'ppt', 'txt', 'html', 'htm',
   'jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'svg',
-  'epub'
+  'epub',
+  'heic', 'heif',
+  'csv',
+  'md', 'markdown',
 ]
 
 // 禁止的文件格式
@@ -83,6 +86,8 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
       { from: 'bmp', to: 'png', points: 1, label: 'BMP → PNG' },
       { from: 'gif', to: 'jpg', points: 1, label: 'GIF → JPG' },
       { from: 'gif', to: 'png', points: 1, label: 'GIF → PNG' },
+      { from: 'heic', to: 'jpg', points: 2, label: 'HEIC → JPG' },
+      { from: 'heic', to: 'png', points: 2, label: 'HEIC → PNG' },
     ]
   },
   {
@@ -94,6 +99,25 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
       { from: 'image', to: 'resize', points: 1, label: '图片尺寸调整' },
       { from: 'image', to: 'crop', points: 1, label: '图片裁剪' },
       { from: 'image', to: 'rotate', points: 1, label: '图片旋转' },
+      { from: 'image', to: 'watermark', points: 0, label: '图片加水印' },
+    ]
+  },
+  {
+    id: 'spreadsheet',
+    name: '表格工具',
+    icon: 'table',
+    conversions: [
+      { from: 'csv', to: 'xlsx', points: 1, label: 'CSV → Excel' },
+      { from: 'xlsx', to: 'csv', points: 1, label: 'Excel → CSV' },
+    ]
+  },
+  {
+    id: 'markdown',
+    name: 'Markdown工具',
+    icon: 'file-code',
+    conversions: [
+      { from: 'md', to: 'html', points: 1, label: 'Markdown → HTML' },
+      { from: 'md', to: 'pdf', points: 3, label: 'Markdown → PDF' },
     ]
   },
   {
@@ -181,12 +205,18 @@ export const CLIENT_PDFJS_PAIRS: ReadonlyArray<Pair> = [
   ['pdf', 'jpg'], ['pdf', 'jpeg'], ['pdf', 'png'],
 ]
 
-/** 服务端轻量级（sharp / pdf-lib / mammoth / docx / unpdf） */
+/** 服务端轻量级（sharp / pdf-lib / mammoth / docx / unpdf / xlsx / marked） */
 export const SERVER_LIGHT_PAIRS: ReadonlyArray<Pair> = [
   ['txt', 'pdf'], ['txt', 'docx'],
   ['docx', 'txt'], ['pdf', 'txt'],
   ['jpg', 'pdf'], ['jpeg', 'pdf'], ['png', 'pdf'], ['webp', 'pdf'],
   ['svg', 'png'], ['svg', 'jpg'],
+  // HEIC / HEIF（iPhone 照片）
+  ['heic', 'jpg'], ['heic', 'png'], ['heif', 'jpg'], ['heif', 'png'],
+  // CSV ↔ Excel
+  ['csv', 'xlsx'], ['csv', 'xls'], ['xlsx', 'csv'], ['xls', 'csv'],
+  // Markdown → HTML
+  ['md', 'html'], ['markdown', 'html'],
 ]
 
 /** 服务端重型（LibreOffice / pdf2docx / Adobe API，独立并发=1） */
@@ -201,11 +231,14 @@ export const SERVER_HEAVY_PAIRS: ReadonlyArray<Pair> = [
   // Adobe CreatePDF（兜底 LibreOffice）
   ['xlsx', 'pdf'], ['xls', 'pdf'],
   ['pptx', 'pdf'], ['ppt', 'pdf'],
+  // Markdown → PDF（先转 HTML 再走 LibreOffice）
+  ['md', 'pdf'], ['markdown', 'pdf'],
 ]
 
 /** 客户端"伪转换"工具（不是真正的 from→to，是打开 Dialog） */
 export const CLIENT_TOOL_PAIRS: ReadonlyArray<Pair> = [
   ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'], ['image', 'crop'],
+  ['image', 'watermark'],
   ['pdf', 'merge'], ['pdf', 'split'], ['pdf', 'rotate'],
   ['json', 'tools'],
 ]

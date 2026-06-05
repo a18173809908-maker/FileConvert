@@ -4,6 +4,8 @@ import mammoth from 'mammoth'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
 import sharp from 'sharp'
 import { extractText, getDocumentProxy } from 'unpdf'
+import * as XLSX from 'xlsx'
+import { marked } from 'marked'
 import { convertWithLibreOffice } from './libreoffice'
 import { convertPdfToDocx } from './pdf-to-docx'
 import { adobeExportPdf, adobeCreatePdf, isAdobeConfigured } from './adobe-pdf'
@@ -153,6 +155,79 @@ async function imageViaSharp(input: Buffer, to: string): Promise<ConvertResult> 
   return { buffer, mimeType: mime }
 }
 
+// ---------- HEIC / HEIF → 图片 ----------
+
+async function heicToImage(input: Buffer, to: string): Promise<ConvertResult> {
+  let pipeline = sharp(input)
+  let mime: string
+  switch (to) {
+    case 'jpg':
+    case 'jpeg':
+      pipeline = pipeline.jpeg({ quality: 92 })
+      mime = 'image/jpeg'
+      break
+    case 'png':
+      pipeline = pipeline.png()
+      mime = 'image/png'
+      break
+    default:
+      throw new Error(`HEIC 不支持输出格式: ${to}`)
+  }
+  const buffer = await pipeline.toBuffer()
+  return { buffer, mimeType: mime }
+}
+
+// ---------- CSV ↔ Excel ----------
+
+async function csvToXlsx(input: Buffer): Promise<ConvertResult> {
+  const wb = XLSX.read(input.toString('utf-8'), { type: 'string' })
+  const buffer = Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as ArrayBuffer)
+  return {
+    buffer,
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  }
+}
+
+async function xlsxToCsv(input: Buffer): Promise<ConvertResult> {
+  const wb = XLSX.read(input, { type: 'buffer' })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  const csv = XLSX.utils.sheet_to_csv(ws)
+  return { buffer: Buffer.from(csv, 'utf-8'), mimeType: 'text/csv; charset=utf-8' }
+}
+
+// ---------- Markdown → HTML / PDF ----------
+
+async function mdToHtml(input: Buffer): Promise<ConvertResult> {
+  const md = input.toString('utf-8')
+  const body = await marked(md)
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.7;color:#333}
+  h1,h2,h3{border-bottom:1px solid #eee;padding-bottom:.3em}
+  code{background:#f4f4f4;padding:2px 6px;border-radius:3px;font-size:.9em}
+  pre code{display:block;padding:16px;overflow-x:auto;background:#f6f8fa;border-radius:6px}
+  blockquote{border-left:4px solid #ddd;margin:0;padding-left:16px;color:#666}
+  img{max-width:100%}
+  table{border-collapse:collapse;width:100%}
+  td,th{border:1px solid #ddd;padding:8px 12px;text-align:left}
+  th{background:#f6f8fa}
+  a{color:#0366d6}
+</style>
+</head>
+<body>${body}</body>
+</html>`
+  return { buffer: Buffer.from(html, 'utf-8'), mimeType: 'text/html; charset=utf-8' }
+}
+
+async function mdToPdf(input: Buffer): Promise<ConvertResult> {
+  const { buffer: htmlBuf } = await mdToHtml(input)
+  return viaLibreOffice(htmlBuf, 'html', 'pdf', 'application/pdf')
+}
+
 // ---------- LibreOffice 转换 ----------
 
 async function viaLibreOffice(input: Buffer, fromExt: string, targetExt: string, mimeType: string): Promise<ConvertResult> {
@@ -183,6 +258,14 @@ export async function convertOnServer(
   if (['svg', 'bmp', 'gif'].includes(f) && ['png', 'jpg', 'jpeg', 'webp'].includes(t)) {
     return imageViaSharp(input, t)
   }
+  // HEIC / HEIF
+  if ((f === 'heic' || f === 'heif') && ['jpg', 'jpeg', 'png'].includes(t)) return heicToImage(input, t)
+  // CSV ↔ Excel
+  if (f === 'csv' && (t === 'xlsx' || t === 'xls')) return csvToXlsx(input)
+  if ((f === 'xlsx' || f === 'xls') && t === 'csv') return xlsxToCsv(input)
+  // Markdown
+  if ((f === 'md' || f === 'markdown') && t === 'html') return mdToHtml(input)
+  if ((f === 'md' || f === 'markdown') && t === 'pdf') return mdToPdf(input)
 
   // 重型（LibreOffice）
   const docxMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'

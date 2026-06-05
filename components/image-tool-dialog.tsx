@@ -16,10 +16,12 @@ import { cn } from '@/lib/utils'
 import {
   ImageToolId,
   OutputFormat,
+  WatermarkPosition,
   compressImage,
   resizeImage,
   rotateImage,
   cropImage,
+  watermarkImage,
   getImageDimensions,
 } from '@/lib/image-tools'
 import { formatFileSize, getFileExtension, isFileSizeAllowed } from '@/lib/conversion-config'
@@ -29,6 +31,7 @@ const TOOL_TITLES: Record<ImageToolId, string> = {
   resize: '图片尺寸调整',
   rotate: '图片旋转',
   crop: '图片裁剪',
+  watermark: '图片加水印',
 }
 
 const ACCEPTED = '.jpg,.jpeg,.png,.webp,.bmp,.gif'
@@ -53,6 +56,13 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
   const [degrees, setDegrees] = useState(90)
   const [format, setFormat] = useState<OutputFormat>('jpg')
 
+  // 水印参数
+  const [wmText, setWmText] = useState('文件侠')
+  const [wmPosition, setWmPosition] = useState<WatermarkPosition>('bottom-right')
+  const [wmOpacity, setWmOpacity] = useState(50)
+  const [wmFontSize, setWmFontSize] = useState(36)
+  const [wmColor, setWmColor] = useState('#ffffff')
+
   // 裁剪选区（自然像素坐标）
   const [crop, setCrop] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -71,6 +81,7 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
       setQuality(80); setDegrees(90); setFormat('jpg')
       setKeepAspect(true)
       setCrop(null)
+      setWmText('文件侠'); setWmPosition('bottom-right'); setWmOpacity(50); setWmFontSize(36); setWmColor('#ffffff')
     }
   }, [tool])
 
@@ -168,6 +179,18 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
           blob = await cropImage(file, {
             x: crop.x, y: crop.y, width: crop.w, height: crop.h,
             format, quality: quality / 100,
+          })
+          break
+        case 'watermark':
+          if (!wmText.trim()) throw new Error('请输入水印文字')
+          blob = await watermarkImage(file, {
+            text: wmText.trim(),
+            position: wmPosition,
+            opacity: wmOpacity / 100,
+            fontSize: wmFontSize,
+            color: wmColor,
+            format,
+            quality: quality / 100,
           })
           break
       }
@@ -375,6 +398,84 @@ export function ImageToolDialog({ tool, onClose }: ImageToolDialogProps) {
                     ) : (
                       <p className="text-xs text-muted-foreground">尚未选择，按住鼠标在图片上拖动</p>
                     )}
+                  </div>
+                )}
+
+                {tool === 'watermark' && (
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">水印文字</Label>
+                      <input
+                        type="text"
+                        value={wmText}
+                        onChange={(e) => setWmText(e.target.value)}
+                        placeholder="输入水印文字"
+                        className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">位置</Label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {([
+                          ['top-left', '左上'], ['center', '居中'], ['top-right', '右上'],
+                          ['bottom-left', '左下'], ['tile', '平铺'], ['bottom-right', '右下'],
+                        ] as [WatermarkPosition, string][]).map(([pos, label]) => (
+                          <button
+                            key={pos}
+                            onClick={() => setWmPosition(pos)}
+                            className={cn(
+                              'rounded-md border py-1.5 text-xs',
+                              wmPosition === pos
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-border hover:bg-accent'
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <Label className="text-xs">不透明度</Label>
+                          <span className="text-xs text-muted-foreground">{wmOpacity}%</span>
+                        </div>
+                        <Slider min={5} max={100} step={5} value={[wmOpacity]} onValueChange={([v]) => setWmOpacity(v)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">字号 (px)</Label>
+                        <input
+                          type="number"
+                          min={12} max={200}
+                          value={wmFontSize}
+                          onChange={(e) => setWmFontSize(Number(e.target.value))}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">颜色</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={wmColor}
+                          onChange={(e) => setWmColor(e.target.value)}
+                          className="h-8 w-12 cursor-pointer rounded border border-border"
+                        />
+                        {['#ffffff', '#000000', '#ff0000', '#ff6600', '#0066ff'].map(c => (
+                          <button
+                            key={c}
+                            onClick={() => setWmColor(c)}
+                            className={cn(
+                              'h-6 w-6 rounded-full border-2',
+                              wmColor === c ? 'border-primary' : 'border-transparent'
+                            )}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 

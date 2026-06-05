@@ -135,12 +135,77 @@ export async function rotateImage(file: File, opts: RotateOptions): Promise<Blob
   return canvasToBlob(canvas, opts.format, opts.quality ?? 0.92)
 }
 
+// ---------- 水印 ----------
+
+export type WatermarkPosition = 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'tile'
+
+export interface WatermarkOptions {
+  text: string
+  position: WatermarkPosition
+  opacity: number    // 0-1
+  fontSize: number   // px
+  color: string      // hex
+  format: OutputFormat
+  quality?: number
+}
+
+export async function watermarkImage(file: File, opts: WatermarkOptions): Promise<Blob> {
+  const img = await fileToImage(file)
+  const canvas = document.createElement('canvas')
+  canvas.width = img.naturalWidth
+  canvas.height = img.naturalHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas 上下文创建失败')
+
+  ctx.drawImage(img, 0, 0)
+
+  const fontSize = Math.max(opts.fontSize, 12)
+  ctx.font = `bold ${fontSize}px Arial, "PingFang SC", "Microsoft YaHei", sans-serif`
+  ctx.fillStyle = opts.color || '#ffffff'
+  ctx.globalAlpha = Math.max(0.05, Math.min(1, opts.opacity))
+
+  const text = opts.text || '水印'
+  const metrics = ctx.measureText(text)
+  const tw = metrics.width
+  const th = fontSize
+  const w = canvas.width
+  const h = canvas.height
+  const pad = Math.max(20, fontSize)
+
+  if (opts.position === 'tile') {
+    ctx.save()
+    ctx.translate(w / 2, h / 2)
+    ctx.rotate(-Math.PI / 6)
+    const stepX = tw + fontSize * 4
+    const stepY = th + fontSize * 3
+    for (let y = -h; y < h + stepY; y += stepY) {
+      for (let x = -w; x < w + stepX; x += stepX) {
+        ctx.fillText(text, x - tw / 2, y)
+      }
+    }
+    ctx.restore()
+  } else {
+    let x: number, y: number
+    switch (opts.position) {
+      case 'top-left':     x = pad;          y = pad + th;     break
+      case 'top-right':    x = w - tw - pad; y = pad + th;     break
+      case 'bottom-left':  x = pad;          y = h - pad;      break
+      case 'bottom-right': x = w - tw - pad; y = h - pad;      break
+      default:             x = (w - tw) / 2; y = (h + th) / 2; break
+    }
+    ctx.fillText(text, x, y)
+  }
+
+  ctx.globalAlpha = 1
+  return canvasToBlob(canvas, opts.format, opts.quality ?? 0.92)
+}
+
 // ---------- 工具识别 ----------
 
-export type ImageToolId = 'compress' | 'resize' | 'rotate' | 'crop'
+export type ImageToolId = 'compress' | 'resize' | 'rotate' | 'crop' | 'watermark'
 
 export function isImageTool(to: string): to is ImageToolId {
-  return to === 'compress' || to === 'resize' || to === 'rotate' || to === 'crop'
+  return ['compress', 'resize', 'rotate', 'crop', 'watermark'].includes(to)
 }
 
 export function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
