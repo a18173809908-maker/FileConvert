@@ -1,32 +1,46 @@
 import 'server-only'
+import { adobeKeyPool, AdobeKey } from './adobe-pool'
 
-// Adobe PDF Services API REST 客户端
-// 免费额度：500 次/月 / 账号
+// Adobe PDF Services API REST 客户端（多 Key 池版）
+// 单 Key 免费 500 次/月，多 Key 叠加额度
 // 文档：https://developer.adobe.com/document-services/docs/apis/
 
 const IMS_TOKEN_URL = 'https://ims-na1.adobelogin.com/ims/token/v3'
 const PDF_API_BASE = 'https://pdf-services.adobe.io'
 
 interface TokenCache { token: string; expiresAt: number }
-let tokenCache: TokenCache | null = null
+const tokenCache = new Map<string, TokenCache>()
 
-export function isAdobeConfigured(): boolean {
-  return !!process.env.ADOBE_CLIENT_ID && !!process.env.ADOBE_CLIENT_SECRET
+export class AdobeQuotaError extends Error {
+  constructor(msg: string) {
+    super(msg)
+    this.name = 'AdobeQuotaError'
+  }
 }
 
-async function getAccessToken(): Promise<string> {
-  const clientId = process.env.ADOBE_CLIENT_ID
-  const clientSecret = process.env.ADOBE_CLIENT_SECRET
-  if (!clientId || !clientSecret) throw new Error('Adobe credentials not configured')
-
-  if (tokenCache && Date.now() < tokenCache.expiresAt - 60_000) {
-    return tokenCache.token
+export class AdobeAllKeysExhaustedError extends Error {
+  constructor() {
+    super('Adobe 所有 Key 本月额度均已用完，请稍后或下月再试')
+    this.name = 'AdobeAllKeysExhaustedError'
   }
+}
+
+export function isAdobeConfigured(): boolean {
+  return !adobeKeyPool.isEmpty()
+}
+
+export function adobePoolStats() {
+  return { size: adobeKeyPool.size(), keys: adobeKeyPool.stats() }
+}
+
+async function getAccessToken(key: AdobeKey): Promise<string> {
+  const cached = tokenCache.get(key.clientId)
+  if (cached && Date.now() < cached.expiresAt - 60_000) return cached.token
 
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
-    client_id: clientId,
-    client_secret: clientSecret,
+    client_id: key.clientId,
+    client_secret: key.clientSecret,
     scope: 'openid,AdobeID,read_organizations,DCAPI',
   })
 
@@ -40,30 +54,26 @@ async function getAccessToken(): Promise<string> {
     throw new Error(`Adobe auth failed: ${res.status} ${text.slice(0, 200)}`)
   }
   const data = await res.json()
-  tokenCache = {
+  tokenCache.set(key.clientId, {
     token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in * 1000),
-  }
+    expiresAt: Date.now() + data.expires_in * 1000,
+  })
   return data.access_token
 }
 
-interface CreateAssetResponse {
-  uploadUri: string
-  assetID: string
-}
+interface CreateAssetResponse { uploadUri: string; assetID: string }
 
 async function createAsset(token: string, clientId: string, mediaType: string): Promise<CreateAssetResponse> {
   const res = await fetch(`${PDF_API_BASE}/assets`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'x-api-key': clientId,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'x-api-key': clientId, 'Content-Type': 'application/json' },
     body: JSON.stringify({ mediaType }),
   })
   if (!res.ok) {
     const text = await res.text()
+    if (res.status === 429 || /quota|limit|exceeded/i.test(text)) {
+      throw new AdobeQuotaError(`createAsset quota: ${text.slice(0, 200)}`)
+    }
     throw new Error(`Adobe createAsset failed: ${res.status} ${text.slice(0, 200)}`)
   }
   return await res.json()
@@ -81,39 +91,22 @@ async function uploadAsset(uploadUri: string, buffer: Buffer, mediaType: string)
   }
 }
 
-async function startJob(
-  token: string,
-  clientId: string,
-  endpoint: string,
-  body: unknown,
-): Promise<string> {
+async function startJob(token: string, clientId: string, endpoint: string, body: unknown): Promise<string> {
   const res = await fetch(`${PDF_API_BASE}${endpoint}`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'x-api-key': clientId,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'x-api-key': clientId, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
   if (res.status !== 201) {
     const text = await res.text()
-    // Adobe 配额超限通常返回 429 或 4xx + 特定错误码
     if (res.status === 429 || /quota|limit|exceeded/i.test(text)) {
-      throw new AdobeQuotaError(`Adobe quota exceeded: ${text.slice(0, 200)}`)
+      throw new AdobeQuotaError(`startJob quota: ${text.slice(0, 200)}`)
     }
-    throw new Error(`Adobe job start failed: ${res.status} ${text.slice(0, 200)}`)
+    throw new Error(`Adobe startJob failed: ${res.status} ${text.slice(0, 200)}`)
   }
   const location = res.headers.get('location')
-  if (!location) throw new Error('Adobe job start: missing Location header')
+  if (!location) throw new Error('Adobe startJob: missing Location header')
   return location
-}
-
-export class AdobeQuotaError extends Error {
-  constructor(msg: string) {
-    super(msg)
-    this.name = 'AdobeQuotaError'
-  }
 }
 
 interface PollResponse {
@@ -139,7 +132,9 @@ async function pollJob(token: string, clientId: string, location: string, timeou
       return data.asset.downloadUri
     }
     if (data.status === 'failed') {
-      throw new Error(`Adobe job failed: ${data.error?.message || data.error?.code || 'unknown'}`)
+      const msg = data.error?.message || data.error?.code || 'unknown'
+      if (/quota|limit|exceeded/i.test(msg)) throw new AdobeQuotaError(msg)
+      throw new Error(`Adobe job failed: ${msg}`)
     }
     await new Promise(r => setTimeout(r, interval))
     interval = Math.min(interval * 1.5, 3000)
@@ -153,10 +148,9 @@ async function downloadResult(downloadUri: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer())
 }
 
-// ============================================================
-// 通用流程：upload → job → poll → download
-// ============================================================
-
+/**
+ * 通用流程：从 Key 池挑 Key，失败若是配额问题就切下一个 Key 重试
+ */
 async function runAdobeJob(
   inputBuffer: Buffer,
   inputMime: string,
@@ -164,14 +158,35 @@ async function runAdobeJob(
   body: (assetID: string) => unknown,
   pollTimeoutMs = 120_000,
 ): Promise<Buffer> {
-  if (!isAdobeConfigured()) throw new Error('Adobe credentials not configured')
-  const clientId = process.env.ADOBE_CLIENT_ID!
-  const token = await getAccessToken()
-  const { uploadUri, assetID } = await createAsset(token, clientId, inputMime)
-  await uploadAsset(uploadUri, inputBuffer, inputMime)
-  const location = await startJob(token, clientId, endpoint, body(assetID))
-  const downloadUri = await pollJob(token, clientId, location, pollTimeoutMs)
-  return downloadResult(downloadUri)
+  if (adobeKeyPool.isEmpty()) throw new Error('Adobe credentials not configured')
+
+  const totalKeys = adobeKeyPool.size()
+  let lastErr: unknown = null
+
+  for (let attempt = 0; attempt < totalKeys; attempt++) {
+    const key = adobeKeyPool.pick()
+    if (!key) break  // 全部冷却中
+
+    try {
+      const token = await getAccessToken(key)
+      const { uploadUri, assetID } = await createAsset(token, key.clientId, inputMime)
+      await uploadAsset(uploadUri, inputBuffer, inputMime)
+      const location = await startJob(token, key.clientId, endpoint, body(assetID))
+      const downloadUri = await pollJob(token, key.clientId, location, pollTimeoutMs)
+      return await downloadResult(downloadUri)
+    } catch (err) {
+      lastErr = err
+      if (err instanceof AdobeQuotaError) {
+        console.warn(`[adobe] Key ${key.clientId.slice(0, 6)}... 额度用完，切下一个`)
+        adobeKeyPool.markExhausted(key.clientId)
+        continue  // 试下一个 Key
+      }
+      throw err  // 非配额错误直接抛
+    }
+  }
+
+  if (lastErr instanceof AdobeQuotaError) throw new AdobeAllKeysExhaustedError()
+  throw lastErr ?? new AdobeAllKeysExhaustedError()
 }
 
 // ============================================================
@@ -180,10 +195,6 @@ async function runAdobeJob(
 
 export type ExportTarget = 'docx' | 'doc' | 'rtf' | 'xlsx' | 'pptx' | 'jpeg' | 'png'
 
-/**
- * PDF → DOCX/XLSX/PPTX/... （ExportPDF）
- * 自带 OCR，可识别扫描版 PDF 中的中文
- */
 export async function adobeExportPdf(
   pdfBuffer: Buffer,
   targetFormat: ExportTarget,
@@ -197,7 +208,6 @@ export async function adobeExportPdf(
   )
 }
 
-/** 兼容旧名 */
 export const adobePdfToDocx = (buf: Buffer, ocrLang = 'zh-CN') =>
   adobeExportPdf(buf, 'docx', ocrLang)
 
@@ -216,19 +226,11 @@ const CREATE_PDF_MIME: Record<string, string> = {
 
 export type CreatePdfSource = keyof typeof CREATE_PDF_MIME
 
-/**
- * Office/HTML → PDF（CreatePDF）
- */
 export async function adobeCreatePdf(
   inputBuffer: Buffer,
   sourceExt: CreatePdfSource,
 ): Promise<Buffer> {
   const mime = CREATE_PDF_MIME[sourceExt]
   if (!mime) throw new Error(`adobeCreatePdf 不支持源格式: ${sourceExt}`)
-  return runAdobeJob(
-    inputBuffer,
-    mime,
-    '/operation/createpdf',
-    (assetID) => ({ assetID }),
-  )
+  return runAdobeJob(inputBuffer, mime, '/operation/createpdf', (assetID) => ({ assetID }))
 }

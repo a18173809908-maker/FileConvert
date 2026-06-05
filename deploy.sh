@@ -38,6 +38,8 @@ docker run -d \
   ${QQ_REDIRECT_URI:+-e QQ_REDIRECT_URI="${QQ_REDIRECT_URI}"} \
   ${ADOBE_CLIENT_ID:+-e ADOBE_CLIENT_ID="${ADOBE_CLIENT_ID}"} \
   ${ADOBE_CLIENT_SECRET:+-e ADOBE_CLIENT_SECRET="${ADOBE_CLIENT_SECRET}"} \
+  ${ADOBE_KEYS:+-e ADOBE_KEYS="${ADOBE_KEYS}"} \
+  $(env | awk -F= '/^ADOBE_CLIENT_(ID|SECRET)_[0-9]+=/ {printf " -e %s", $1}') \
   "${IMAGE_NAME}:latest"
 
 echo

@@ -31,22 +31,50 @@ echo "export COOKIE_SECURE=true" >> ~/.bashrc
 HOST_PORT=80 bash deploy.sh   # 或者 Nginx 反代到容器
 ```
 
-## Adobe PDF Services（PDF → Word 高质量引擎）
+## Adobe PDF Services（多 Key 池）
 
-免费 500 次/月，超出自动 fallback 到容器内的 pdf2docx。
+每个 Adobe 账号免费 500 次/月。Key 越多额度越叠加。
+代码自动轮换 Key，单 Key 用完冷却 1 小时再试。
 
+### 三种配置方式（任一种或混合都行）
+
+**方式 A：编号后缀（推荐，shell 友好）**
 ```bash
-# 已加到 ~/.bashrc（持久化）
-export ADOBE_CLIENT_ID='xxxxxxxxx'
-export ADOBE_CLIENT_SECRET='p8e-xxxxxxxxxxxxxxx'
+export ADOBE_CLIENT_ID_1='xxx1'
+export ADOBE_CLIENT_SECRET_1='p8e-xxx1'
+export ADOBE_CLIENT_ID_2='xxx2'
+export ADOBE_CLIENT_SECRET_2='p8e-xxx2'
+# ... 最多 20 组
+```
 
-# 重新部署即生效
+**方式 B：JSON 数组**
+```bash
+export ADOBE_KEYS='[{"id":"xxx1","secret":"p8e-xxx1"},{"id":"xxx2","secret":"p8e-xxx2"}]'
+```
+
+**方式 C：单 Key（兼容旧配置）**
+```bash
+export ADOBE_CLIENT_ID='xxx'
+export ADOBE_CLIENT_SECRET='p8e-xxx'
+```
+
+三种都识别，遇到重复 Client ID 会去重。配好后重新部署：
+```bash
 HOST_PORT=80 bash deploy.sh
 ```
 
-未配置时 PDF→Word 直接走 pdf2docx（无 OCR、质量中等）。
+启动日志会打印：`[adobe-pool] 已加载 N 个 Adobe Key`
 
-申请流程：https://developer.adobe.com/console → 新建项目 → 加 PDF Services API → OAuth Server-to-Server → 拿 Client ID + Secret。
+### 单 Key 用完会怎样？
+1. 代码捕获 quota error → 标记冷却 1 小时
+2. 自动切下一个 Key 重试
+3. 全部 Key 都冷却中 → 抛 `AdobeAllKeysExhaustedError`
+4. PDF→Word 走 pdf2docx 兜底
+5. PDF→Excel/PPT 直接报错（无替代方案）
+
+### 申请新 Key 流程
+https://developer.adobe.com/console → 新项目 → 加 PDF Services API → OAuth Server-to-Server → 拿 Client ID + Secret。
+注意：每个 Adobe 账号一组 500 次额度。要多额度就申请多账号（不同邮箱）。
 
 监控用量：https://developer.adobe.com/console 项目页能看 PDF Transactions。
 
