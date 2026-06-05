@@ -92,7 +92,79 @@ sudo docker restart fileconvert
 
 ---
 
-## 五、CI/CD 流程（代码更新步骤）
+## 五、容器启动脚本
+
+服务器上已创建一键启动脚本：`/www/wwwroot/fileconvert/start.sh`
+
+**每次更新镜像或修改环境变量后执行：**
+```bash
+sudo bash /www/wwwroot/fileconvert/start.sh
+```
+
+**脚本内容（如需新增 Adobe Key，编辑此文件加 `_4`, `_5`...）：**
+```bash
+# 用 vi 编辑
+sudo vi /www/wwwroot/fileconvert/start.sh
+```
+
+---
+
+## 六、环境变量说明
+
+| 变量名 | 说明 |
+|--------|------|
+| `SESSION_SECRET` | iron-session 加密密钥，**必须 32 位以上** |
+| `COOKIE_SECURE` | 设为 `true` 启用 HTTPS Only Cookie |
+| `ADOBE_CLIENT_ID_N` | Adobe PDF API 第 N 个账号的 Client ID |
+| `ADOBE_CLIENT_SECRET_N` | Adobe PDF API 第 N 个账号的 Secret |
+| `DB_PATH` | SQLite 数据库路径（默认 `/app/data/fileconvert.db`）|
+
+**Adobe Key 池说明：**
+- 目前配置了 3 个 Key，每个账号免费 500 次/月，合计 1500 次/月
+- 额度用完自动切换下一个 Key（冷却 1 小时）
+- 新增 Key：在 start.sh 中加 `-e ADOBE_CLIENT_ID_4=xxx -e ADOBE_CLIENT_SECRET_4=xxx`
+
+---
+
+## 七、数据库维护
+
+数据库文件位置：`/www/wwwroot/fileconvert/data/fileconvert.db`
+
+> ⚠️ **权限注意**：数据目录必须属于 uid 1001（容器内 nextjs 用户），否则数据库无法写入：
+> ```bash
+> sudo chown -R 1001:1001 /www/wwwroot/fileconvert/data/
+> sudo chmod 755 /www/wwwroot/fileconvert/data/
+> ```
+
+**常用查询命令：**
+```bash
+# 查看所有用户
+sudo sqlite3 /www/wwwroot/fileconvert/data/fileconvert.db \
+"SELECT id, email, nickname, points, datetime(created_at,'unixepoch','+8 hours') FROM users ORDER BY created_at DESC;"
+
+# 用户总数
+sudo sqlite3 /www/wwwroot/fileconvert/data/fileconvert.db "SELECT COUNT(*) FROM users;"
+
+# 修改用户积分（USER_ID 替换为实际 ID）
+sudo sqlite3 /www/wwwroot/fileconvert/data/fileconvert.db \
+"UPDATE users SET points = 500 WHERE id = USER_ID;"
+
+# 重置用户密码（密码用 scrypt 加密，需用 Node.js 生成哈希）
+node -e "
+const {scrypt,randomBytes}=require('crypto');
+const {promisify}=require('util');
+const s=promisify(scrypt);
+const salt=randomBytes(16);
+s('新密码',salt,64).then(d=>console.log('scrypt\$'+salt.toString('hex')+'\$'+d.toString('hex')));
+"
+# 然后执行：
+sudo sqlite3 /www/wwwroot/fileconvert/data/fileconvert.db \
+"UPDATE users SET password_hash='上面生成的哈希' WHERE email='用户邮箱';"
+```
+
+---
+
+## 八、CI/CD 流程（代码更新步骤）
 
 1. **本地修改代码**
 2. **提交推送到 GitHub**
@@ -237,15 +309,34 @@ JSON 格式化/校验
 
 ## 十、待完成 / 后续建议
 
-- [ ] **一键更新脚本**：将 docker pull + stop + rm + run 写成服务器上的 shell 脚本，减少手动操作
-- [ ] **ACR Webhook 自动部署**：ACR 构建完成后通过 Webhook 自动触发服务器更新，实现全自动 CI/CD
-- [ ] **音频转换**：MP3/WAV/AAC/FLAC 互转（需在 Dockerfile 中安装 ffmpeg）
-- [ ] **视频转换**：MP4/AVI/MOV（较重，需评估服务器资源）
-- [ ] **图片 OCR**：提取图片中的文字（可接入 Tesseract 或第三方 API）
-- [ ] **图片去背景**：接入 remove.bg API 或本地 AI 模型
-- [ ] **PDF 加密/解密**：使用 pdf-lib 实现
-- [ ] **ZIP 打包**：多文件批量打包下载
-- [ ] **站名显示问题**：浏览器缓存导致部分用户仍看到旧站名"文件快"，属正常缓存行为，等待缓存过期即可
+### 已完成
+- [x] **一键启动脚本**：`/www/wwwroot/fileconvert/start.sh`，含所有环境变量
+- [x] **数据库权限修复**：chown 1001:1001，数据正常持久化
+- [x] **SESSION_SECRET 修复**：已设置 32 位以上密钥
+- [x] **Adobe Key 池**：已配置 3 个账号（1500 次/月免费额度）
+
+### 待完成（推荐优先级）
+
+**完全免费，开发量小（优先做）：**
+- [ ] **二维码生成**：qrcode npm 包，1天搞定，用户需求大
+- [ ] **PDF 加密/解密**：pdf-lib 已装，直接支持，2小时
+- [ ] **ZIP 打包下载**：jszip 已装，半天
+- [ ] **Word/PPT → HTML**：LibreOffice 已有，加路由即可
+
+**需要 API（有免费额度）：**
+- [ ] **图片 OCR**：腾讯云每月 1000 次免费（多账号可叠加，但同身份证限一个）
+- [ ] **图片去背景**：阿里云每月 500 次免费，超出 0.002元/次
+
+**需要安装 ffmpeg（免费但占资源）：**
+- [ ] **音频转换**：MP3/WAV/AAC/FLAC 互转，需在 Dockerfile 加 ffmpeg
+
+**不建议（2C4G 服务器撑不住）：**
+- [ ] ~~视频转换~~：ffmpeg 转视频极耗 CPU
+- [ ] ~~本地 AI 模型~~：4G 内存不够
+
+### 其他
+- [ ] **ACR Webhook 自动部署**：构建完自动拉镜像，无需手动执行 start.sh
+- [ ] **站名缓存**：部分用户浏览器缓存旧站名"文件快"，属正常现象，等待过期即可
 
 ---
 
