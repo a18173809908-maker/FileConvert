@@ -270,6 +270,21 @@ function HomePageInner() {
               onRemoveItem={handleRemoveItem}
               onAddFiles={handleAddFiles}
             />
+
+            <a
+              href="https://www.aiboxpro.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-5 py-4 text-primary transition-colors hover:border-primary hover:bg-primary/10"
+            >
+              <div>
+                <p className="font-semibold">更多 AI 工具</p>
+                <p className="mt-1 text-sm text-muted-foreground">点击前往 AIBoxPro 主站，发现更多实用工具</p>
+              </div>
+              <span className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+                立即查看
+              </span>
+            </a>
           </div>
         </main>
         <AccountPanel />
