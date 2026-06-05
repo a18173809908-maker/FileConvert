@@ -41,6 +41,7 @@ ENV NODE_ENV=production \
     HEAVY_CONCURRENCY=1 \
     HEAVY_ACQUIRE_TIMEOUT_MS=20000 \
     LIBREOFFICE_TIMEOUT_MS=60000 \
+    QPDF_TIMEOUT_MS=60000 \
     RATE_LIMIT_BURST=5 \
     RATE_LIMIT_PER_SEC=0.5
 
@@ -57,6 +58,7 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors
         fonts-wqy-zenhei \
         fonts-wqy-microhei \
         ca-certificates \
+        qpdf \
         python3 \
         python3-venv && \
     rm -rf /var/lib/apt/lists/*

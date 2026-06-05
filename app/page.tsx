@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
+import JSZip from 'jszip'
 import { Header } from '@/components/header'
 import { SidebarNav } from '@/components/sidebar-nav'
 import { UploadZone } from '@/components/upload-zone'
@@ -105,8 +106,47 @@ function HomePageInner() {
     URL.revokeObjectURL(url)
   }, [])
 
-  const handleDownloadAll = useCallback(() => {
-    queueItems.filter(i => i.status === 'completed').forEach(handleDownloadItem)
+  const handleDownloadAll = useCallback(async () => {
+    const completedItems = queueItems.filter(i => i.status === 'completed' && i.resultBlob)
+    if (completedItems.length === 0) {
+      toast.error('暂无可下载的已完成文件')
+      return
+    }
+
+    if (completedItems.length === 1) {
+      handleDownloadItem(completedItems[0])
+      return
+    }
+
+    try {
+      const zip = new JSZip()
+      const usedNames = new Map<string, number>()
+
+      for (const item of completedItems) {
+        const originalName = getConvertedFileName(item.fileName, item.toFormat, item.resultBlob)
+        const dotIndex = originalName.lastIndexOf('.')
+        const baseName = dotIndex > 0 ? originalName.substring(0, dotIndex) : originalName
+        const ext = dotIndex > 0 ? originalName.substring(dotIndex) : ''
+        const count = usedNames.get(originalName) || 0
+        const safeName = count === 0 ? originalName : `${baseName}-${count + 1}${ext}`
+
+        usedNames.set(originalName, count + 1)
+        zip.file(safeName, item.resultBlob!)
+      }
+
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `fileconvert-${new Date().toISOString().slice(0, 10)}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success(`已打包 ${completedItems.length} 个文件`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '打包下载失败')
+    }
   }, [queueItems, handleDownloadItem])
 
   const handleStartConversion = useCallback(() => {

@@ -69,6 +69,8 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
       { from: 'pdf', to: 'merge', points: 2, label: 'PDF 合并' },
       { from: 'pdf', to: 'split', points: 2, label: 'PDF 拆分' },
       { from: 'pdf', to: 'rotate', points: 1, label: 'PDF 旋转' },
+      { from: 'pdf', to: 'encrypt', points: 1, label: 'PDF 加密' },
+      { from: 'pdf', to: 'decrypt', points: 1, label: 'PDF 解密' },
     ]
   },
   {
@@ -239,7 +241,7 @@ export const SERVER_HEAVY_PAIRS: ReadonlyArray<Pair> = [
 export const CLIENT_TOOL_PAIRS: ReadonlyArray<Pair> = [
   ['image', 'compress'], ['image', 'resize'], ['image', 'rotate'], ['image', 'crop'],
   ['image', 'watermark'],
-  ['pdf', 'merge'], ['pdf', 'split'], ['pdf', 'rotate'],
+  ['pdf', 'merge'], ['pdf', 'split'], ['pdf', 'rotate'], ['pdf', 'encrypt'], ['pdf', 'decrypt'],
   ['json', 'tools'],
 ]
 

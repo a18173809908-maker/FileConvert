@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Play, Trash2, Check, Loader2 } from 'lucide-react'
+import { Archive, Download, Play, Trash2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { QueueItem, formatFileSize } from '@/lib/conversion-config'
 
@@ -102,6 +102,14 @@ export function ConversionQueue({
           <span className="text-sm text-muted-foreground">{items.length} 个文件</span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={onDownloadAll}
+            disabled={completedCount === 0}
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            下载全部
+          </button>
           <button
             onClick={onClear}
             className="text-sm text-muted-foreground hover:text-foreground"

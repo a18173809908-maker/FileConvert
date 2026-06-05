@@ -19,6 +19,7 @@ import {
   rotatePdf,
   getPdfPageCount,
   SplitMode,
+  securePdf,
 } from '@/lib/pdf-tools'
 import { formatFileSize, getFileExtension } from '@/lib/conversion-config'
 
@@ -26,12 +27,16 @@ const TITLES: Record<PdfToolId, string> = {
   merge: 'PDF 合并',
   split: 'PDF 拆分',
   rotate: 'PDF 旋转',
+  encrypt: 'PDF 加密',
+  decrypt: 'PDF 解密',
 }
 
 const DESCRIPTIONS: Record<PdfToolId, string> = {
   merge: '将多个 PDF 按顺序合并成一个文件，全程在浏览器本地完成',
   split: '把 PDF 拆成多个文件，按页或按指定范围，打包成 zip',
   rotate: '旋转所有页面，90° / 180° / 270°',
+  encrypt: '为 PDF 设置打开密码，生成受密码保护的新文件',
+  decrypt: '输入已加密 PDF 的密码，生成去除打开密码的新文件',
 }
 
 interface PdfToolDialogProps {
@@ -50,10 +55,14 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
   const [splitRanges, setSplitRanges] = useState('1-3, 5, 7-9')
   // 旋转参数
   const [rotateDegree, setRotateDegree] = useState<90 | 180 | 270>(90)
+  // 加密 / 解密参数
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   useEffect(() => {
     if (!tool) {
       setFiles([]); setPageCount(null); setResultBlob(null); setWorking(false)
+      setPassword(''); setConfirmPassword('')
     }
   }, [tool])
 
@@ -139,6 +148,15 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
         case 'rotate':
           blob = await rotatePdf(files[0], rotateDegree)
           break
+        case 'encrypt':
+          if (password.length < 1) throw new Error('请输入 PDF 打开密码')
+          if (password !== confirmPassword) throw new Error('两次输入的密码不一致')
+          blob = await securePdf(files[0], 'encrypt', password)
+          break
+        case 'decrypt':
+          if (password.length < 1) throw new Error('请输入 PDF 密码')
+          blob = await securePdf(files[0], 'decrypt', password)
+          break
       }
       setResultBlob(blob)
     } catch (err) {
@@ -146,13 +164,20 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
     } finally {
       setWorking(false)
     }
-  }, [tool, files, splitMode, splitRanges, rotateDegree])
+  }, [tool, files, splitMode, splitRanges, rotateDegree, password, confirmPassword])
 
   const handleDownload = useCallback(() => {
     if (!resultBlob || !tool) return
     const base = files[0]?.name.replace(/\.pdf$/i, '') || 'output'
     const isZip = resultBlob.type === 'application/zip'
-    const name = isZip ? `${base}_${tool}.zip` : `${base}_${tool}.pdf`
+    const suffix: Record<PdfToolId, string> = {
+      merge: 'merge',
+      split: 'split',
+      rotate: 'rotate',
+      encrypt: 'encrypted',
+      decrypt: 'decrypted',
+    }
+    const name = isZip ? `${base}_${suffix[tool]}.zip` : `${base}_${suffix[tool]}.pdf`
     const url = URL.createObjectURL(resultBlob)
     const a = document.createElement('a')
     a.href = url
@@ -167,6 +192,8 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
   const description = tool ? DESCRIPTIONS[tool] : ''
   const canApply =
     tool === 'merge' ? files.length >= 2 :
+    tool === 'encrypt' ? files.length === 1 && password.length > 0 && password === confirmPassword :
+    tool === 'decrypt' ? files.length === 1 && password.length > 0 :
     tool ? files.length === 1 : false
 
   return (
@@ -277,6 +304,54 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* 加密 / 解密参数 */}
+          {(tool === 'encrypt' || tool === 'decrypt') && files.length === 1 && (
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <div className="space-y-1">
+                <Label htmlFor="pdf-password">
+                  {tool === 'encrypt' ? '设置打开密码' : '输入 PDF 密码'}
+                </Label>
+                <input
+                  id="pdf-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    setResultBlob(null)
+                  }}
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              {tool === 'encrypt' && (
+                <div className="space-y-1">
+                  <Label htmlFor="pdf-password-confirm">确认密码</Label>
+                  <input
+                    id="pdf-password-confirm"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      setResultBlob(null)
+                    }}
+                    className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                    autoComplete="new-password"
+                  />
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-xs text-destructive">两次输入的密码不一致</p>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                {tool === 'encrypt'
+                  ? '加密后的 PDF 需要输入密码才能打开，请妥善保存密码。'
+                  : '解密只会生成新的 PDF 文件，不会修改原文件。'}
+              </p>
             </div>
           )}
 

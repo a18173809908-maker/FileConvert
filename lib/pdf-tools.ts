@@ -4,10 +4,10 @@
 import { PDFDocument, degrees } from 'pdf-lib'
 import JSZip from 'jszip'
 
-export type PdfToolId = 'merge' | 'split' | 'rotate'
+export type PdfToolId = 'merge' | 'split' | 'rotate' | 'encrypt' | 'decrypt'
 
 export function isPdfTool(to: string): to is PdfToolId {
-  return to === 'merge' || to === 'split' || to === 'rotate'
+  return to === 'merge' || to === 'split' || to === 'rotate' || to === 'encrypt' || to === 'decrypt'
 }
 
 async function loadPdf(file: File): Promise<PDFDocument> {
@@ -120,4 +120,28 @@ export async function rotatePdf(
 export async function getPdfPageCount(file: File): Promise<number> {
   const pdf = await loadPdf(file)
   return pdf.getPageCount()
+}
+
+// ---------- 加密 / 解密 ----------
+
+export async function securePdf(
+  file: File,
+  action: 'encrypt' | 'decrypt',
+  password: string,
+): Promise<Blob> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('action', action)
+  form.append('password', password)
+
+  const res = await fetch('/api/pdf/security', { method: 'POST', body: form })
+  if (!res.ok) {
+    let message = action === 'encrypt' ? 'PDF 加密失败' : 'PDF 解密失败'
+    try {
+      const data = await res.json()
+      if (data?.error) message = data.error
+    } catch {}
+    throw new Error(message)
+  }
+  return await res.blob()
 }
