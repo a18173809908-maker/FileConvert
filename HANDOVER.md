@@ -118,6 +118,9 @@ sudo vi /www/wwwroot/fileconvert/start.sh
 | `ADOBE_CLIENT_ID_N` | Adobe PDF API 第 N 个账号的 Client ID |
 | `ADOBE_CLIENT_SECRET_N` | Adobe PDF API 第 N 个账号的 Secret |
 | `DB_PATH` | SQLite 数据库路径（默认 `/app/data/fileconvert.db`）|
+| `ADOBE_POLL_TIMEOUT_MS` | Adobe PDF API 任务轮询超时（建议 `180000`，大 PDF 转 Word/Excel/PPT 需要更久）|
+| `PDF2DOCX_TIMEOUT_MS` | pdf2docx 兜底转换超时（建议 `180000`）|
+| `HEAVY_ACQUIRE_TIMEOUT_MS` | 重型转换等待队列超时（建议 `60000`）|
 
 **Adobe Key 池说明：**
 - 目前配置了 3 个 Key，每个账号免费 500 次/月，合计 1500 次/月

@@ -39,8 +39,9 @@ ENV NODE_ENV=production \
     CONVERT_CONCURRENCY=2 \
     CONVERT_ACQUIRE_TIMEOUT_MS=15000 \
     HEAVY_CONCURRENCY=1 \
-    HEAVY_ACQUIRE_TIMEOUT_MS=20000 \
+    HEAVY_ACQUIRE_TIMEOUT_MS=60000 \
     LIBREOFFICE_TIMEOUT_MS=60000 \
+    ADOBE_POLL_TIMEOUT_MS=180000 \
     QPDF_TIMEOUT_MS=60000 \
     RATE_LIMIT_BURST=5 \
     RATE_LIMIT_PER_SEC=0.5
@@ -73,7 +74,7 @@ RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip cache purge 2>/dev/null || true
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHON_BIN=/opt/venv/bin/python3 \
-    PDF2DOCX_TIMEOUT_MS=90000
+    PDF2DOCX_TIMEOUT_MS=180000
 
 RUN groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 --gid nodejs --create-home --home-dir /home/nextjs nextjs

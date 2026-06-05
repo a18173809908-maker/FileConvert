@@ -73,6 +73,7 @@ async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
     let message = `服务端转换失败 (${res.status})`
     if (res.status === 429) message = '请求过于频繁，请稍后再试'
     else if (res.status === 503) message = '服务繁忙，请稍后重试'
+    else if (res.status === 502 || res.status === 504) message = '转换超时，大文件请稍后重试或单独转换'
     else if (res.status === 413) message = '文件超过大小限制'
     try {
       const data = await res.json()

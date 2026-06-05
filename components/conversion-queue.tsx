@@ -2,7 +2,7 @@
 
 import { Archive, Download, Play, Trash2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { QueueItem, formatFileSize } from '@/lib/conversion-config'
+import { QueueItem, formatFileSize, isHeavyConversion } from '@/lib/conversion-config'
 
 interface ConversionQueueProps {
   items: QueueItem[]
@@ -42,7 +42,17 @@ function FileTypeIcon({ type, className }: { type: string; className?: string })
 }
 
 // 状态标签组件
-function StatusBadge({ status, progress, errorMessage }: { status: QueueItem['status']; progress?: number; errorMessage?: string }) {
+function StatusBadge({
+  status,
+  progress,
+  errorMessage,
+  heavy,
+}: {
+  status: QueueItem['status']
+  progress?: number
+  errorMessage?: string
+  heavy?: boolean
+}) {
   if (status === 'completed') {
     return (
       <span className="flex items-center gap-1 text-sm text-green-600">
@@ -54,11 +64,16 @@ function StatusBadge({ status, progress, errorMessage }: { status: QueueItem['st
 
   if (status === 'converting') {
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-primary">转换中</span>
-        {progress && progress > 0 ? (
-          <span className="text-sm text-muted-foreground">{progress}%</span>
-        ) : null}
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-primary">转换中</span>
+          {progress && progress > 0 ? (
+            <span className="text-sm text-muted-foreground">{progress}%</span>
+          ) : null}
+        </div>
+        {heavy && (
+          <span className="block text-xs text-muted-foreground">大文件可能需要 1-3 分钟</span>
+        )}
       </div>
     )
   }
@@ -177,7 +192,12 @@ export function ConversionQueue({
 
               {/* Status */}
               <div className="flex flex-col gap-1">
-                <StatusBadge status={item.status} progress={item.progress} errorMessage={item.errorMessage} />
+                <StatusBadge
+                  status={item.status}
+                  progress={item.progress}
+                  errorMessage={item.errorMessage}
+                  heavy={isHeavyConversion(item.fromFormat, item.toFormat)}
+                />
                 {item.status === 'converting' && (
                   <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
                     {item.progress && item.progress > 0 ? (

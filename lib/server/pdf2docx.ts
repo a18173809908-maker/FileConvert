@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 
 const PY = process.env.PYTHON_BIN || 'python3'
-const TIMEOUT_MS = Number(process.env.PDF2DOCX_TIMEOUT_MS || '90000')
+const TIMEOUT_MS = Number(process.env.PDF2DOCX_TIMEOUT_MS || '180000')
 
 const PY_SCRIPT = `
 import sys

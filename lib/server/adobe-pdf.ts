@@ -7,6 +7,7 @@ import { adobeKeyPool, AdobeKey } from './adobe-pool'
 
 const IMS_TOKEN_URL = 'https://ims-na1.adobelogin.com/ims/token/v3'
 const PDF_API_BASE = 'https://pdf-services.adobe.io'
+const ADOBE_POLL_TIMEOUT_MS = Number(process.env.ADOBE_POLL_TIMEOUT_MS || '180000')
 
 interface TokenCache { token: string; expiresAt: number }
 const tokenCache = new Map<string, TokenCache>()
@@ -156,7 +157,7 @@ async function runAdobeJob(
   inputMime: string,
   endpoint: string,
   body: (assetID: string) => unknown,
-  pollTimeoutMs = 120_000,
+  pollTimeoutMs = ADOBE_POLL_TIMEOUT_MS,
 ): Promise<Buffer> {
   if (adobeKeyPool.isEmpty()) throw new Error('Adobe credentials not configured')
 

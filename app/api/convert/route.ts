@@ -4,7 +4,7 @@ import { checkRateLimit, getClientIp, withConcurrencyLimit, withHeavyLimit, sema
 import { isFormatAllowed, isFileSizeAllowed, getFileExtension } from '@/lib/conversion-config'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 180
 
 export async function POST(req: NextRequest) {
   // ---------- 速率限制 ----------
