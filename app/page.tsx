@@ -149,7 +149,7 @@ function HomePageInner() {
     }
   }, [queueItems, handleDownloadItem])
 
-  const handleStartConversion = useCallback(() => {
+  const handleStartConversion = useCallback(async () => {
     // 未登录 → 引导登录
     if (!user) {
       toast.error('请先登录')
@@ -159,66 +159,75 @@ function HomePageInner() {
 
     // 积分预检
     const queued = queueItems.filter(i => i.status === 'queued')
+    if (queueItems.some(i => i.status === 'converting')) {
+      toast.info('已有文件正在转换，请稍候')
+      return
+    }
+    if (queued.length === 0) {
+      toast.info('暂无排队中的文件')
+      return
+    }
     const totalCost = queued.reduce((s, i) => s + i.points, 0)
     if (user.points < totalCost) {
       toast.error(`积分不足：需要 ${totalCost}，当前 ${user.points}`)
       return
     }
 
-    setQueueItems(prev => {
-      const updated = prev.map(item => {
-        if (item.status !== 'queued') return item
-        if (!item.sourceFile) {
-          return { ...item, status: 'failed' as const, errorMessage: '未找到源文件' }
-        }
-        if (!canConvert(item.fromFormat, item.toFormat)) {
-          return { ...item, status: 'failed' as const, errorMessage: `暂不支持 ${item.fromFormat.toUpperCase()} → ${item.toFormat.toUpperCase()}` }
-        }
-        return { ...item, status: 'converting' as const, progress: 0 }
-      })
+    for (const item of queued) {
+      if (!item.sourceFile) {
+        setQueueItems(prev => prev.map(i =>
+          i.id === item.id ? { ...i, status: 'failed' as const, errorMessage: '未找到源文件' } : i
+        ))
+        continue
+      }
+      if (!canConvert(item.fromFormat, item.toFormat)) {
+        setQueueItems(prev => prev.map(i =>
+          i.id === item.id
+            ? { ...i, status: 'failed' as const, errorMessage: `暂不支持 ${item.fromFormat.toUpperCase()} → ${item.toFormat.toUpperCase()}` }
+            : i
+        ))
+        continue
+      }
 
-      updated
-        .filter(item => item.status === 'converting' && item.sourceFile)
-        .forEach(item => {
-          convertFile(item.sourceFile!, item.fromFormat, item.toFormat, {
-            onProgress: (current, total) => {
-              const pct = Math.round((current / total) * 100)
-              setQueueItems(prev => prev.map(i => i.id === item.id ? { ...i, progress: pct } : i))
-            },
-          })
-            .then(async (blob) => {
-              // 转换成功 → 扣积分
-              try {
-                await fetch('/api/points/charge', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    cost: item.points,
-                    from: item.fromFormat,
-                    to: item.toFormat,
-                    fileName: item.fileName,
-                  }),
-                })
-                refreshUser()
-              } catch {}
+      setQueueItems(prev => prev.map(i =>
+        i.id === item.id ? { ...i, status: 'converting' as const, progress: 0, errorMessage: undefined } : i
+      ))
 
-              setQueueItems(prev => prev.map(i =>
-                i.id === item.id
-                  ? { ...i, status: 'completed' as const, progress: 100, resultBlob: blob }
-                  : i
-              ))
-            })
-            .catch(err => {
-              setQueueItems(prev => prev.map(i =>
-                i.id === item.id
-                  ? { ...i, status: 'failed' as const, errorMessage: err instanceof Error ? err.message : '转换失败' }
-                  : i
-              ))
-            })
+      try {
+        const blob = await convertFile(item.sourceFile, item.fromFormat, item.toFormat, {
+          onProgress: (current, total) => {
+            const pct = Math.round((current / total) * 100)
+            setQueueItems(prev => prev.map(i => i.id === item.id ? { ...i, progress: pct } : i))
+          },
         })
 
-      return updated
-    })
+        try {
+          await fetch('/api/points/charge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cost: item.points,
+              from: item.fromFormat,
+              to: item.toFormat,
+              fileName: item.fileName,
+            }),
+          })
+          refreshUser()
+        } catch {}
+
+        setQueueItems(prev => prev.map(i =>
+          i.id === item.id
+            ? { ...i, status: 'completed' as const, progress: 100, resultBlob: blob }
+            : i
+        ))
+      } catch (err) {
+        setQueueItems(prev => prev.map(i =>
+          i.id === item.id
+            ? { ...i, status: 'failed' as const, errorMessage: err instanceof Error ? err.message : '转换失败' }
+            : i
+        ))
+      }
+    }
   }, [user, queueItems, setLoginDialogOpen, refreshUser])
 
   const handleRemoveItem = useCallback((id: string) => {

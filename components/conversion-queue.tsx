@@ -202,7 +202,8 @@ export function ConversionQueue({
                 {item.status === 'queued' && (
                   <button
                     onClick={() => onStartConversion()}
-                    className="flex h-8 items-center gap-1 rounded bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+                    disabled={convertingCount > 0}
+                    className="flex h-8 items-center gap-1 rounded bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Play className="h-3.5 w-3.5" />
                     转换
