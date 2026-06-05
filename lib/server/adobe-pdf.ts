@@ -19,7 +19,6 @@ async function getAccessToken(): Promise<string> {
   const clientSecret = process.env.ADOBE_CLIENT_SECRET
   if (!clientId || !clientSecret) throw new Error('Adobe credentials not configured')
 
-  // 提前 1 分钟刷新避免边界
   if (tokenCache && Date.now() < tokenCache.expiresAt - 60_000) {
     return tokenCache.token
   }
@@ -53,7 +52,7 @@ interface CreateAssetResponse {
   assetID: string
 }
 
-async function createAsset(token: string, clientId: string): Promise<CreateAssetResponse> {
+async function createAsset(token: string, clientId: string, mediaType: string): Promise<CreateAssetResponse> {
   const res = await fetch(`${PDF_API_BASE}/assets`, {
     method: 'POST',
     headers: {
@@ -61,7 +60,7 @@ async function createAsset(token: string, clientId: string): Promise<CreateAsset
       'x-api-key': clientId,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ mediaType: 'application/pdf' }),
+    body: JSON.stringify({ mediaType }),
   })
   if (!res.ok) {
     const text = await res.text()
@@ -70,10 +69,10 @@ async function createAsset(token: string, clientId: string): Promise<CreateAsset
   return await res.json()
 }
 
-async function uploadAsset(uploadUri: string, buffer: Buffer): Promise<void> {
+async function uploadAsset(uploadUri: string, buffer: Buffer, mediaType: string): Promise<void> {
   const res = await fetch(uploadUri, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/pdf' },
+    headers: { 'Content-Type': mediaType },
     body: new Uint8Array(buffer),
   })
   if (!res.ok) {
@@ -82,23 +81,39 @@ async function uploadAsset(uploadUri: string, buffer: Buffer): Promise<void> {
   }
 }
 
-async function startExport(token: string, clientId: string, assetID: string, ocrLang: string): Promise<string> {
-  const res = await fetch(`${PDF_API_BASE}/operation/exportpdf`, {
+async function startJob(
+  token: string,
+  clientId: string,
+  endpoint: string,
+  body: unknown,
+): Promise<string> {
+  const res = await fetch(`${PDF_API_BASE}${endpoint}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
       'x-api-key': clientId,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ assetID, targetFormat: 'docx', ocrLang }),
+    body: JSON.stringify(body),
   })
   if (res.status !== 201) {
     const text = await res.text()
-    throw new Error(`Adobe startExport failed: ${res.status} ${text.slice(0, 200)}`)
+    // Adobe 配额超限通常返回 429 或 4xx + 特定错误码
+    if (res.status === 429 || /quota|limit|exceeded/i.test(text)) {
+      throw new AdobeQuotaError(`Adobe quota exceeded: ${text.slice(0, 200)}`)
+    }
+    throw new Error(`Adobe job start failed: ${res.status} ${text.slice(0, 200)}`)
   }
   const location = res.headers.get('location')
-  if (!location) throw new Error('Adobe startExport: missing Location header')
+  if (!location) throw new Error('Adobe job start: missing Location header')
   return location
+}
+
+export class AdobeQuotaError extends Error {
+  constructor(msg: string) {
+    super(msg)
+    this.name = 'AdobeQuotaError'
+  }
 }
 
 interface PollResponse {
@@ -127,7 +142,7 @@ async function pollJob(token: string, clientId: string, location: string, timeou
       throw new Error(`Adobe job failed: ${data.error?.message || data.error?.code || 'unknown'}`)
     }
     await new Promise(r => setTimeout(r, interval))
-    interval = Math.min(interval * 1.5, 3000)  // 渐增轮询间隔
+    interval = Math.min(interval * 1.5, 3000)
   }
   throw new Error('Adobe job polling timeout')
 }
@@ -138,17 +153,82 @@ async function downloadResult(downloadUri: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer())
 }
 
-/**
- * Adobe PDF Services：PDF → DOCX
- * 自带 OCR，可识别扫描版 PDF 中的中文
- */
-export async function adobePdfToDocx(pdfBuffer: Buffer, ocrLang = 'zh-CN'): Promise<Buffer> {
+// ============================================================
+// 通用流程：upload → job → poll → download
+// ============================================================
+
+async function runAdobeJob(
+  inputBuffer: Buffer,
+  inputMime: string,
+  endpoint: string,
+  body: (assetID: string) => unknown,
+  pollTimeoutMs = 120_000,
+): Promise<Buffer> {
   if (!isAdobeConfigured()) throw new Error('Adobe credentials not configured')
   const clientId = process.env.ADOBE_CLIENT_ID!
   const token = await getAccessToken()
-  const { uploadUri, assetID } = await createAsset(token, clientId)
-  await uploadAsset(uploadUri, pdfBuffer)
-  const location = await startExport(token, clientId, assetID, ocrLang)
-  const downloadUri = await pollJob(token, clientId, location, 120_000)
+  const { uploadUri, assetID } = await createAsset(token, clientId, inputMime)
+  await uploadAsset(uploadUri, inputBuffer, inputMime)
+  const location = await startJob(token, clientId, endpoint, body(assetID))
+  const downloadUri = await pollJob(token, clientId, location, pollTimeoutMs)
   return downloadResult(downloadUri)
+}
+
+// ============================================================
+// 公开 API
+// ============================================================
+
+export type ExportTarget = 'docx' | 'doc' | 'rtf' | 'xlsx' | 'pptx' | 'jpeg' | 'png'
+
+/**
+ * PDF → DOCX/XLSX/PPTX/... （ExportPDF）
+ * 自带 OCR，可识别扫描版 PDF 中的中文
+ */
+export async function adobeExportPdf(
+  pdfBuffer: Buffer,
+  targetFormat: ExportTarget,
+  ocrLang = 'zh-CN',
+): Promise<Buffer> {
+  return runAdobeJob(
+    pdfBuffer,
+    'application/pdf',
+    '/operation/exportpdf',
+    (assetID) => ({ assetID, targetFormat, ocrLang }),
+  )
+}
+
+/** 兼容旧名 */
+export const adobePdfToDocx = (buf: Buffer, ocrLang = 'zh-CN') =>
+  adobeExportPdf(buf, 'docx', ocrLang)
+
+const CREATE_PDF_MIME: Record<string, string> = {
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  doc:  'application/msword',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  xls:  'application/vnd.ms-excel',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  ppt:  'application/vnd.ms-powerpoint',
+  rtf:  'application/rtf',
+  txt:  'text/plain',
+  html: 'text/html',
+  htm:  'text/html',
+}
+
+export type CreatePdfSource = keyof typeof CREATE_PDF_MIME
+
+/**
+ * Office/HTML → PDF（CreatePDF）
+ */
+export async function adobeCreatePdf(
+  inputBuffer: Buffer,
+  sourceExt: CreatePdfSource,
+): Promise<Buffer> {
+  const mime = CREATE_PDF_MIME[sourceExt]
+  if (!mime) throw new Error(`adobeCreatePdf 不支持源格式: ${sourceExt}`)
+  return runAdobeJob(
+    inputBuffer,
+    mime,
+    '/operation/createpdf',
+    (assetID) => ({ assetID }),
+  )
 }

@@ -34,7 +34,7 @@ export const FILE_SIZE_LIMITS = {
 
 // 允许的文件格式
 export const ALLOWED_FORMATS = [
-  'pdf', 'doc', 'docx', 'txt', 'html',
+  'pdf', 'doc', 'docx', 'xlsx', 'xls', 'pptx', 'ppt', 'txt', 'html', 'htm',
   'jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'svg',
   'epub'
 ]
@@ -52,7 +52,11 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     icon: 'file-text',
     conversions: [
       { from: 'pdf', to: 'docx', points: 5, label: 'PDF → Word' },
+      { from: 'pdf', to: 'xlsx', points: 8, label: 'PDF → Excel' },
+      { from: 'pdf', to: 'pptx', points: 8, label: 'PDF → PPT' },
       { from: 'docx', to: 'pdf', points: 5, label: 'Word → PDF' },
+      { from: 'xlsx', to: 'pdf', points: 5, label: 'Excel → PDF' },
+      { from: 'pptx', to: 'pdf', points: 5, label: 'PPT → PDF' },
       { from: 'pdf', to: 'jpg', points: 5, label: 'PDF → JPG' },
       { from: 'pdf', to: 'png', points: 5, label: 'PDF → PNG' },
       { from: 'jpg', to: 'pdf', points: 2, label: 'JPG → PDF' },
@@ -192,6 +196,11 @@ export const SERVER_HEAVY_PAIRS: ReadonlyArray<Pair> = [
   ['html', 'pdf'], ['htm', 'pdf'],
   ['epub', 'pdf'],
   ['pdf', 'docx'],
+  // Adobe Export
+  ['pdf', 'xlsx'], ['pdf', 'pptx'],
+  // Adobe CreatePDF（兜底 LibreOffice）
+  ['xlsx', 'pdf'], ['xls', 'pdf'],
+  ['pptx', 'pdf'], ['ppt', 'pdf'],
 ]
 
 /** 客户端"伪转换"工具（不是真正的 from→to，是打开 Dialog） */

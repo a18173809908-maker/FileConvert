@@ -6,6 +6,7 @@ import sharp from 'sharp'
 import { extractText, getDocumentProxy } from 'unpdf'
 import { convertWithLibreOffice } from './libreoffice'
 import { convertPdfToDocx } from './pdf-to-docx'
+import { adobeExportPdf, adobeCreatePdf, isAdobeConfigured } from './adobe-pdf'
 import { canConvertServer as canConvertServerShared, isHeavyConversion as isHeavyShared } from '@/lib/conversion-config'
 
 export interface ConvertResult {
@@ -198,6 +199,27 @@ export async function convertOnServer(
   if (f === 'pdf' && t === 'docx') {
     const { buffer } = await convertPdfToDocx(input)
     return { buffer, mimeType: docxMime }
+  }
+
+  // PDF → XLSX / PPTX：只能走 Adobe（没有合适的开源替代）
+  if (f === 'pdf' && (t === 'xlsx' || t === 'pptx')) {
+    if (!isAdobeConfigured()) {
+      throw new Error(`PDF → ${t.toUpperCase()} 需要 Adobe 服务，当前未配置，请联系管理员`)
+    }
+    const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    const pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    const buffer = await adobeExportPdf(input, t)
+    return { buffer, mimeType: t === 'xlsx' ? xlsxMime : pptxMime }
+  }
+
+  // XLSX / PPTX → PDF：Adobe CreatePDF（LibreOffice 也能做但保真度差）
+  if ((f === 'xlsx' || f === 'xls' || f === 'pptx' || f === 'ppt') && t === 'pdf') {
+    if (isAdobeConfigured()) {
+      const buffer = await adobeCreatePdf(input, f as 'xlsx' | 'xls' | 'pptx' | 'ppt')
+      return { buffer, mimeType: pdfMime }
+    }
+    // Adobe 没配，兜底 LibreOffice（LibreOffice 也能转这些）
+    return viaLibreOffice(input, f, 'pdf', pdfMime)
   }
 
   throw new Error(`未实现的转换: ${f} → ${t}`)
