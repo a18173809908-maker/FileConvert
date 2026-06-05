@@ -72,7 +72,7 @@ function StatusBadge({
           ) : null}
         </div>
         {heavy && (
-          <span className="block text-xs text-muted-foreground">大文件可能需要 1-3 分钟</span>
+          <span className="block text-xs text-muted-foreground">大文件可能需要 3-5 分钟</span>
         )}
       </div>
     )

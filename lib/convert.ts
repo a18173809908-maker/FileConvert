@@ -81,6 +81,8 @@ async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
     } catch {}
     if (/Adobe 转换仍在处理中/.test(message)) {
       message = 'Adobe 转换仍在处理中，大 PDF 请稍后重试或拆分后转换'
+    } else if (/Adobe PDF 转 Word 失败/.test(message)) {
+      message = 'Adobe PDF 转 Word 失败，建议拆分 PDF 后重试'
     }
     throw new Error(message)
   }
