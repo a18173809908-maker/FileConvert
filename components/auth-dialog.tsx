@@ -59,7 +59,7 @@ export function AuthDialog() {
       if (mode === 'register' && typeof window !== 'undefined') {
         window.localStorage.removeItem('fc:pendingInvite')
       }
-      toast.success(mode === 'login' ? '登录成功' : '注册成功，已赠送 20 积分')
+      toast.success(mode === 'login' ? '登录成功' : '注册成功，已赠送 200 积分')
       setLoginDialogOpen(false)
       reset()
     } catch (err) {
@@ -87,7 +87,7 @@ export function AuthDialog() {
         <DialogHeader>
           <DialogTitle>{mode === 'login' ? '登录' : '注册'}</DialogTitle>
           <DialogDescription>
-            {mode === 'login' ? '使用邮箱、微信或 QQ 登录' : '注册即赠送 20 积分'}
+            {mode === 'login' ? '使用邮箱、微信或 QQ 登录' : '注册即赠送 200 积分'}
           </DialogDescription>
         </DialogHeader>
 

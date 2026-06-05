@@ -16,7 +16,7 @@ export interface ConversionCategory {
 
 // 积分规则配置
 export const POINTS_CONFIG = {
-  register: 20,
+  register: 200,
   dailyLogin: 20,
   dailyRestore: 10,
   invite: 200,

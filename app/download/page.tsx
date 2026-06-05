@@ -11,7 +11,7 @@ export default function DownloadPage() {
           <div className="mb-8">
             <h1 className="text-2xl font-bold">无需下载，浏览器即可使用</h1>
             <p className="mt-2 text-muted-foreground">
-              文件快是纯网页应用，打开就能用，不占内存、不留垃圾
+              文件侠是纯网页应用，打开就能用，不占内存、不留垃圾
             </p>
           </div>
 

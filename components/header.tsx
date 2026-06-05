@@ -12,9 +12,9 @@ export function Header() {
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground">
-            <span className="text-sm font-bold">快</span>
+            <span className="text-sm font-bold">侠</span>
           </div>
-          <span className="text-lg font-semibold text-foreground">文件快</span>
+          <span className="text-lg font-semibold text-foreground">文件侠</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
