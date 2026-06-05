@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { AppProvider } from '@/lib/store'
 import { AuthDialog } from '@/components/auth-dialog'
 import { BrowserNotice } from '@/components/browser-notice'
+import { SiteFooter } from '@/components/site-footer'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
@@ -45,6 +46,7 @@ export default function RootLayout({
         <AppProvider>
           <BrowserNotice />
           {children}
+          <SiteFooter />
           <AuthDialog />
         </AppProvider>
         <Toaster position="top-center" richColors />
