@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getClientIp, withConcurrencyLimit, semaphoreStats } from '@/lib/server/limiter'
 import { getFileExtension } from '@/lib/conversion-config'
 import { decryptPdf, encryptPdf } from '@/lib/server/qpdf'
+import { logConversionError, logConversionInfo } from '@/lib/server/conversion-logger'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
+  const startedAt = Date.now()
   const rate = checkRateLimit(ip)
   if (!rate.allowed) {
     return NextResponse.json(
@@ -52,6 +54,16 @@ export async function POST(req: NextRequest) {
       )
     } catch (err) {
       if (err instanceof Error && err.message === 'SEMAPHORE_TIMEOUT') {
+        logConversionError('pdf_security_failed', {
+          ip,
+          fileName: file.name,
+          fileSize: file.size,
+          from: 'pdf',
+          to: action,
+          action,
+          durationMs: Date.now() - startedAt,
+          status: 503,
+        }, err)
         return NextResponse.json(
           { error: '服务繁忙，请稍后重试', stats: semaphoreStats() },
           { status: 503, headers: { 'Retry-After': '5' } },
@@ -59,6 +71,16 @@ export async function POST(req: NextRequest) {
       }
       throw err
     }
+
+    logConversionInfo('pdf_security_completed', {
+      ip,
+      fileName: file.name,
+      fileSize: file.size,
+      from: 'pdf',
+      to: action,
+      action,
+      durationMs: Date.now() - startedAt,
+    })
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
@@ -71,6 +93,11 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'PDF 处理失败'
+    logConversionError('pdf_security_failed', {
+      ip,
+      durationMs: Date.now() - startedAt,
+      status: 500,
+    }, err)
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

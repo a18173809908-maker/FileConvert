@@ -59,6 +59,56 @@ async function postConvert(file: File, toFormat: string): Promise<Response> {
   return fetch('/api/convert', { method: 'POST', body: form })
 }
 
+function normalizeServerError(status: number, message: string): string {
+  if (status === 429) return '请求过于频繁，请稍后再试'
+  if (status === 503) return '服务繁忙，请稍后重试'
+  if (status === 502 || status === 504) return '转换超时，大文件请稍后重试或单独转换'
+  if (status === 413) return '文件超过大小限制'
+  if (/Adobe 转换仍在处理中/.test(message)) return 'Adobe 转换仍在处理中，大 PDF 请稍后重试或拆分后转换'
+  if (/Adobe PDF 转 Word 失败/.test(message)) return 'Adobe PDF 转 Word 失败，建议拆分 PDF 后重试'
+  return message
+}
+
+async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+  let message = fallback
+  try {
+    const data = await res.json()
+    if (data?.error) message = data.error
+  } catch {}
+  return normalizeServerError(res.status, message)
+}
+
+async function pollConversionJob(jobId: string): Promise<Blob> {
+  const deadline = Date.now() + 30 * 60 * 1000
+  let delay = 1000
+
+  while (Date.now() < deadline) {
+    const statusRes = await fetch(`/api/convert/jobs/${jobId}`, { cache: 'no-store' })
+    if (!statusRes.ok) {
+      throw new Error(await readErrorMessage(statusRes, `查询转换任务失败 (${statusRes.status})`))
+    }
+
+    const data = await statusRes.json()
+    const job = data?.job
+    if (job?.status === 'completed') {
+      const resultRes = await fetch(`/api/convert/jobs/${jobId}?download=1`, { cache: 'no-store' })
+      if (!resultRes.ok) {
+        throw new Error(await readErrorMessage(resultRes, `下载转换结果失败 (${resultRes.status})`))
+      }
+      return await resultRes.blob()
+    }
+
+    if (job?.status === 'failed') {
+      throw new Error(normalizeServerError(500, job.error || '转换失败'))
+    }
+
+    await new Promise(r => setTimeout(r, delay))
+    delay = Math.min(Math.round(delay * 1.25), 5000)
+  }
+
+  throw new Error('转换任务等待超时，请稍后重试')
+}
+
 async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
   let res = await postConvert(file, toFormat)
 
@@ -69,22 +119,15 @@ async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
     res = await postConvert(file, toFormat)
   }
 
+  if (res.status === 202) {
+    const data = await res.json()
+    const jobId = data?.job?.id
+    if (!jobId) throw new Error('服务端未返回转换任务 ID')
+    return await pollConversionJob(jobId)
+  }
+
   if (!res.ok) {
-    let message = `服务端转换失败 (${res.status})`
-    if (res.status === 429) message = '请求过于频繁，请稍后再试'
-    else if (res.status === 503) message = '服务繁忙，请稍后重试'
-    else if (res.status === 502 || res.status === 504) message = '转换超时，大文件请稍后重试或单独转换'
-    else if (res.status === 413) message = '文件超过大小限制'
-    try {
-      const data = await res.json()
-      if (data?.error) message = data.error
-    } catch {}
-    if (/Adobe 转换仍在处理中/.test(message)) {
-      message = 'Adobe 转换仍在处理中，大 PDF 请稍后重试或拆分后转换'
-    } else if (/Adobe PDF 转 Word 失败/.test(message)) {
-      message = 'Adobe PDF 转 Word 失败，建议拆分 PDF 后重试'
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(res, `服务端转换失败 (${res.status})`))
   }
   return await res.blob()
 }

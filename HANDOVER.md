@@ -121,6 +121,7 @@ sudo vi /www/wwwroot/fileconvert/start.sh
 | `ADOBE_POLL_TIMEOUT_MS` | Adobe PDF API 任务轮询超时（建议 `240000`，大 PDF 转 Word/Excel/PPT 需要更久）|
 | `PDF2DOCX_TIMEOUT_MS` | pdf2docx 兜底转换超时（建议 `180000`）|
 | `HEAVY_ACQUIRE_TIMEOUT_MS` | 重型转换等待队列超时（建议 `60000`）|
+| `CONVERSION_JOB_TTL_MS` | 异步转换结果在内存中保留多久（默认 `1800000`，即 30 分钟）|
 
 **Adobe Key 池说明：**
 - 目前配置了 3 个 Key，每个账号免费 500 次/月，合计 1500 次/月
