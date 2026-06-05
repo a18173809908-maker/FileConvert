@@ -7,7 +7,7 @@ import { adobeKeyPool, AdobeKey } from './adobe-pool'
 
 const IMS_TOKEN_URL = 'https://ims-na1.adobelogin.com/ims/token/v3'
 const PDF_API_BASE = 'https://pdf-services.adobe.io'
-const ADOBE_POLL_TIMEOUT_MS = Number(process.env.ADOBE_POLL_TIMEOUT_MS || '180000')
+const ADOBE_POLL_TIMEOUT_MS = Number(process.env.ADOBE_POLL_TIMEOUT_MS || '240000')
 
 interface TokenCache { token: string; expiresAt: number }
 const tokenCache = new Map<string, TokenCache>()
@@ -23,6 +23,13 @@ export class AdobeAllKeysExhaustedError extends Error {
   constructor() {
     super('Adobe 所有 Key 本月额度均已用完，请稍后或下月再试')
     this.name = 'AdobeAllKeysExhaustedError'
+  }
+}
+
+export class AdobeJobTimeoutError extends Error {
+  constructor() {
+    super('Adobe 转换仍在处理中，请稍后重试或换较小文件')
+    this.name = 'AdobeJobTimeoutError'
   }
 }
 
@@ -140,7 +147,7 @@ async function pollJob(token: string, clientId: string, location: string, timeou
     await new Promise(r => setTimeout(r, interval))
     interval = Math.min(interval * 1.5, 3000)
   }
-  throw new Error('Adobe job polling timeout')
+  throw new AdobeJobTimeoutError()
 }
 
 async function downloadResult(downloadUri: string): Promise<Buffer> {

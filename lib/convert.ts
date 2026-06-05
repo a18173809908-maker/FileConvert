@@ -79,6 +79,9 @@ async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
       const data = await res.json()
       if (data?.error) message = data.error
     } catch {}
+    if (/Adobe 转换仍在处理中/.test(message)) {
+      message = 'Adobe 转换仍在处理中，大 PDF 请稍后重试或拆分后转换'
+    }
     throw new Error(message)
   }
   return await res.blob()
