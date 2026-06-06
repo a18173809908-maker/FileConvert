@@ -285,6 +285,15 @@ function HomePageInner() {
                 立即查看
               </span>
             </a>
+
+            <section className="rounded-lg border bg-card px-5 py-4 text-sm leading-6 text-muted-foreground">
+              <h1 className="text-base font-semibold text-foreground">文件侠免费在线文件转换工具</h1>
+              <p className="mt-2">
+                支持 PDF 转 Word、Word 转 PDF、PDF 转 Excel、PDF 转 PPT、PDF 转图片、图片格式转换、
+                HEIC 转 JPG、CSV 与 Excel 互转、Markdown 转 HTML/PDF、EPUB 转 PDF 等常用文件转换。
+                无需安装软件，适合在浏览器中快速处理文档、图片和电子书文件。
+              </p>
+            </section>
           </div>
         </main>
         <AccountPanel />

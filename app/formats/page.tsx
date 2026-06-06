@@ -1,6 +1,20 @@
+import type { Metadata } from 'next'
 import { Header } from '@/components/header'
 import { CONVERSION_CATEGORIES, POINTS_CONFIG, isConversionSupported } from '@/lib/conversion-config'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: '格式中心 - 支持的文件转换格式',
+  description: '查看文件侠支持的 PDF、Word、Excel、PPT、图片、Markdown、电子书等在线转换格式，快速找到需要的转换方向。',
+  alternates: {
+    canonical: '/formats',
+  },
+  openGraph: {
+    title: '格式中心 - 支持的文件转换格式',
+    description: '查看文件侠支持的 30+ 种文件转换格式。',
+    url: '/formats',
+  },
+}
 
 export default function FormatsPage() {
   return (

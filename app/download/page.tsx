@@ -1,6 +1,20 @@
+import type { Metadata } from 'next'
 import { Header } from '@/components/header'
 import { Globe, Zap, Lock, Smartphone } from 'lucide-react'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: '应用下载 - 浏览器在线使用',
+  description: '文件侠无需下载安装，打开浏览器即可进行 PDF、Word、图片等文件格式转换，手机、平板、电脑都能使用。',
+  alternates: {
+    canonical: '/download',
+  },
+  openGraph: {
+    title: '应用下载 - 浏览器在线使用',
+    description: '文件侠无需下载安装，浏览器打开即可使用。',
+    url: '/download',
+  },
+}
 
 export default function DownloadPage() {
   return (

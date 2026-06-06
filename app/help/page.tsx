@@ -1,6 +1,20 @@
+import type { Metadata } from 'next'
 import { Header } from '@/components/header'
 import { Shield, Clock, CreditCard, FileText, Upload, HelpCircle, Mail, AlertCircle } from 'lucide-react'
 import { FILE_SIZE_LIMITS, POINTS_CONFIG } from '@/lib/conversion-config'
+
+export const metadata: Metadata = {
+  title: '帮助中心 - 文件转换常见问题',
+  description: '了解文件侠在线文件转换的安全性、文件大小限制、积分规则、支持格式和转换失败处理方式。',
+  alternates: {
+    canonical: '/help',
+  },
+  openGraph: {
+    title: '帮助中心 - 文件转换常见问题',
+    description: '文件侠在线文件转换常见问题与使用指南。',
+    url: '/help',
+  },
+}
 
 const faqItems = [
   {
