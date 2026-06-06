@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FileText, LogOut } from 'lucide-react'
+import { FileText, LogOut, Shield } from 'lucide-react'
 import { useApp } from '@/lib/store'
 
 export function Header() {
@@ -22,6 +22,12 @@ export function Header() {
           <Link href="/formats" className="text-sm text-muted-foreground hover:text-foreground">格式中心</Link>
           <Link href="/download" className="text-sm text-muted-foreground hover:text-foreground">应用下载</Link>
           <Link href="/help" className="text-sm text-muted-foreground hover:text-foreground">帮助</Link>
+          {user?.isAdmin && (
+            <Link href="/admin/logs" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+              <Shield className="h-3.5 w-3.5" />
+              日志
+            </Link>
+          )}
         </nav>
       </div>
 

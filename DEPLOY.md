@@ -14,6 +14,7 @@
 
 ```bash
 export SESSION_SECRET='b3db9901387e5d449db622df5a3375c4d35df5be0b0277b741a55e3ec960b38c'
+export ADMIN_EMAILS='你的管理员登录邮箱'
 ```
 
 > ⚠️ 这是全站会话密钥，**别上传到 git，别贴公开聊天**。如果泄露立刻换一个新的，所有用户会被强制登出但数据不丢。
@@ -62,6 +63,24 @@ export ADOBE_CLIENT_SECRET='p8e-xxx'
 ```bash
 HOST_PORT=80 bash deploy.sh
 ```
+
+## 管理员日志页
+
+部署时建议配置管理员白名单：
+
+```bash
+export ADMIN_EMAILS='admin@example.com'
+# 或者使用用户 ID
+export ADMIN_USER_IDS='1'
+```
+
+重新部署后访问：
+
+```text
+https://tools.aiboxpro.cn/admin/logs
+```
+
+日志页展示最近转换成功/失败事件、错误原因和耗时。日志保存在当前 Node 进程内，容器重启后会清空。
 
 启动日志会打印：`[adobe-pool] 已加载 N 个 Adobe Key`
 

@@ -25,6 +25,7 @@ export interface PublicUser {
   consecutiveDays: number
   hasSignedToday: boolean
   inviteCode: string
+  isAdmin: boolean
 }
 
 interface AppState {

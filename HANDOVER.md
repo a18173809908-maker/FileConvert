@@ -122,11 +122,22 @@ sudo vi /www/wwwroot/fileconvert/start.sh
 | `PDF2DOCX_TIMEOUT_MS` | pdf2docx 兜底转换超时（建议 `180000`）|
 | `HEAVY_ACQUIRE_TIMEOUT_MS` | 重型转换等待队列超时（建议 `60000`）|
 | `CONVERSION_JOB_TTL_MS` | 异步转换结果在内存中保留多久（默认 `1800000`，即 30 分钟）|
+| `ADMIN_EMAILS` | 管理员邮箱白名单，逗号分隔；配置后可访问 `/admin/logs` |
+| `ADMIN_USER_IDS` | 管理员用户 ID 白名单，逗号分隔；可与 `ADMIN_EMAILS` 同时使用 |
+| `APP_VERSION` | 可选，手动指定页脚和 `/api/version` 展示的版本/commit 标识 |
+| `APP_BRANCH` | 可选，手动指定版本接口展示的分支名 |
+| `BUILD_TIME` | 可选，手动指定版本接口展示的构建时间 |
 
 **Adobe Key 池说明：**
 - 目前配置了 3 个 Key，每个账号免费 500 次/月，合计 1500 次/月
 - 额度用完自动切换下一个 Key（冷却 1 小时）
 - 新增 Key：在 start.sh 中加 `-e ADOBE_CLIENT_ID_4=xxx -e ADOBE_CLIENT_SECRET_4=xxx`
+
+**管理员日志页：**
+- 地址：`https://tools.aiboxpro.cn/admin/logs`
+- 权限：必须登录，且邮箱在 `ADMIN_EMAILS` 或用户 ID 在 `ADMIN_USER_IDS`
+- 内容：最近转换任务的成功/失败事件、文件名、大小、方向、耗时、错误信息
+- 注意：日志为进程内环形缓存，容器重启后清空；不保存用户文件
 
 ---
 

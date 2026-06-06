@@ -76,6 +76,28 @@ export interface PublicUser {
   consecutiveDays: number
   hasSignedToday: boolean
   inviteCode: string
+  isAdmin: boolean
+}
+
+export function isAdminUser(u: Pick<UserRow, 'id' | 'email'> | null): boolean {
+  if (!u) return false
+  const adminIds = new Set(
+    (process.env.ADMIN_USER_IDS || '')
+      .split(',')
+      .map(v => Number(v.trim()))
+      .filter(Number.isFinite),
+  )
+  if (adminIds.has(u.id)) return true
+
+  const email = u.email?.trim().toLowerCase()
+  if (!email) return false
+  const adminEmails = new Set(
+    (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map(v => v.trim().toLowerCase())
+      .filter(Boolean),
+  )
+  return adminEmails.has(email)
 }
 
 export function toPublicUser(u: UserRow): PublicUser {
@@ -91,5 +113,6 @@ export function toPublicUser(u: UserRow): PublicUser {
     consecutiveDays: u.consecutive_days,
     hasSignedToday: u.last_sign_date === today,
     inviteCode: u.invite_code,
+    isAdmin: isAdminUser(u),
   }
 }
