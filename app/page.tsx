@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
@@ -84,7 +84,7 @@ function HomePageInner() {
 
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
   const [activePdfTool, setActivePdfTool] = useState<PdfToolId | null>(null)
-  const restoredRef = useRef(false)
+  const [queueHydrated, setQueueHydrated] = useState(false)
 
   // 从 URL ?conversion=pdf-docx 读取预设
   useEffect(() => {
@@ -118,8 +118,8 @@ function HomePageInner() {
   }, [searchParams, refreshUser, user, setLoginDialogOpen])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || restoredRef.current) return
-    restoredRef.current = true
+    if (typeof window === 'undefined') return
+    let cancelled = false
 
     const restore = async () => {
       try {
@@ -136,28 +136,34 @@ function HomePageInner() {
               progress: undefined,
             }
           }
-          if (item.status === 'converting') {
+          if (item.status === 'converting' || item.status === 'queued') {
             return {
               ...item,
               status: 'failed' as const,
-              errorMessage: '页面刷新后转换状态已中断，请重新添加文件转换',
+              errorMessage: '页面刷新后源文件无法自动恢复，请重新添加文件转换',
               progress: undefined,
             }
           }
           return { ...item, resultBlob }
         }))
-        setQueueItems(restored)
-      } catch {}
+        if (!cancelled) setQueueItems(restored)
+      } catch {
+      } finally {
+        if (!cancelled) setQueueHydrated(true)
+      }
     }
 
     void restore()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !restoredRef.current) return
+    if (typeof window === 'undefined' || !queueHydrated) return
     const serializable: StoredQueueItem[] = queueItems.map(({ sourceFile, resultBlob, downloadUrl, ...item }) => item)
     window.sessionStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(serializable))
-  }, [queueItems])
+  }, [queueItems, queueHydrated])
 
   const handleSelectConversion = useCallback((conversionId: string, from: string, to: string) => {
     setSelectedConversion(conversionId)
