@@ -78,7 +78,71 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
   return normalizeServerError(res.status, message)
 }
 
-async function pollConversionJob(jobId: string): Promise<Blob> {
+async function readBlobPrefix(blob: Blob, length = 16): Promise<Uint8Array> {
+  return new Uint8Array(await blob.slice(0, length).arrayBuffer())
+}
+
+function startsWithBytes(bytes: Uint8Array, expected: number[]): boolean {
+  return expected.every((value, index) => bytes[index] === value)
+}
+
+async function validateServerResultBlob(blob: Blob, toFormat: string): Promise<Blob> {
+  const format = toFormat.toLowerCase()
+  const contentType = blob.type.toLowerCase()
+  const prefix = await readBlobPrefix(blob, 32)
+  const firstByte = prefix[0]
+  const binaryTarget = [
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'jpg', 'jpeg', 'png', 'webp',
+  ].includes(format)
+
+  if (binaryTarget && (contentType.includes('application/json') || contentType.includes('text/html'))) {
+    throw new Error('转换结果异常：服务器返回了状态信息而不是文件，请稍后重试')
+  }
+
+  if (binaryTarget && (firstByte === 0x7b || firstByte === 0x5b || firstByte === 0x3c)) {
+    const text = await blob.slice(0, 300).text().catch(() => '')
+    if (/^\s*[\[{]/.test(text) || /^\s*</.test(text)) {
+      throw new Error('转换结果异常：服务器返回了状态信息而不是文件，请稍后重试')
+    }
+  }
+
+  const zipBased = ['docx', 'xlsx', 'pptx'].includes(format)
+  if (zipBased && !startsWithBytes(prefix, [0x50, 0x4b])) {
+    throw new Error(`转换结果异常：生成的 ${format.toUpperCase()} 文件无效，请稍后重试`)
+  }
+
+  if (format === 'pdf' && !startsWithBytes(prefix, [0x25, 0x50, 0x44, 0x46])) {
+    throw new Error('转换结果异常：生成的 PDF 文件无效，请稍后重试')
+  }
+
+  if ((format === 'jpg' || format === 'jpeg') && !startsWithBytes(prefix, [0xff, 0xd8])) {
+    throw new Error('转换结果异常：生成的 JPG 文件无效，请稍后重试')
+  }
+
+  if (format === 'png' && !startsWithBytes(prefix, [0x89, 0x50, 0x4e, 0x47])) {
+    throw new Error('转换结果异常：生成的 PNG 文件无效，请稍后重试')
+  }
+
+  if (format === 'webp') {
+    const riff = startsWithBytes(prefix, [0x52, 0x49, 0x46, 0x46])
+    const webp = prefix[8] === 0x57 && prefix[9] === 0x45 && prefix[10] === 0x42 && prefix[11] === 0x50
+    if (!riff || !webp) {
+      throw new Error('转换结果异常：生成的 WEBP 文件无效，请稍后重试')
+    }
+  }
+
+  const oleBased = ['doc', 'xls', 'ppt'].includes(format)
+  const isOle = startsWithBytes(prefix, [0xd0, 0xcf, 0x11, 0xe0])
+  const isZip = startsWithBytes(prefix, [0x50, 0x4b])
+  if (oleBased && !isOle && !isZip) {
+    throw new Error(`转换结果异常：生成的 ${format.toUpperCase()} 文件无效，请稍后重试`)
+  }
+
+  return blob
+}
+
+async function pollConversionJob(jobId: string, toFormat: string): Promise<Blob> {
   const deadline = Date.now() + 30 * 60 * 1000
   let delay = 1000
 
@@ -100,7 +164,7 @@ async function pollConversionJob(jobId: string): Promise<Blob> {
         const message = await readErrorMessage(resultRes, '转换结果尚未生成，请稍后再试')
         throw new Error(message)
       }
-      return await resultRes.blob()
+      return await validateServerResultBlob(await resultRes.blob(), toFormat)
     }
 
     if (job?.status === 'failed') {
@@ -128,13 +192,13 @@ async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
     const data = await res.json()
     const jobId = data?.job?.id
     if (!jobId) throw new Error('服务端未返回转换任务 ID')
-    return await pollConversionJob(jobId)
+    return await pollConversionJob(jobId, toFormat)
   }
 
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, `服务端转换失败 (${res.status})`))
   }
-  return await res.blob()
+  return await validateServerResultBlob(await res.blob(), toFormat)
 }
 
 export interface ConvertOptions {
