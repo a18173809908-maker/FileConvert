@@ -80,20 +80,20 @@
 
 ## 首批 SEO 落地页
 
-先做 10 个高价值页面，不要一次铺太多低质量页面。
+先做 10 个高价值 SEO 页面，不要一次铺太多低质量页面。这里的“待做”指独立落地页和 SEO 入口，不代表转换能力未完成。
 
-| URL | 页面标题 | 默认转换方向 | 优先级 |
-| --- | --- | --- | --- |
-| `/pdf-to-word` | PDF 转 Word - 免费在线转换 DOCX | PDF → DOCX | P0 |
-| `/word-to-pdf` | Word 转 PDF - 免费在线转换 | DOCX → PDF | P0 |
-| `/pdf-to-excel` | PDF 转 Excel - 在线转换 XLSX | PDF → XLSX | P0 |
-| `/pdf-to-ppt` | PDF 转 PPT - 在线转换 PPTX | PDF → PPTX | P1 |
-| `/pdf-encrypt` | PDF 加密 - 在线给 PDF 设置密码 | PDF 加密 | P0 |
-| `/pdf-decrypt` | PDF 解密 - 在线去除 PDF 密码 | PDF 解密 | P0 |
-| `/pdf-merge` | PDF 合并 - 多个 PDF 合成一个文件 | PDF 合并 | P1 |
-| `/pdf-split` | PDF 拆分 - 按页拆分 PDF 文件 | PDF 拆分 | P1 |
-| `/heic-to-jpg` | HEIC 转 JPG - 免费图片格式转换 | HEIC → JPG | P1 |
-| `/epub-to-pdf` | EPUB 转 PDF - 在线电子书转换 | EPUB → PDF | P1 |
+| URL | 页面标题 | 默认转换方向 | 当前转换能力 | 优先级 |
+| --- | --- | --- | --- | --- |
+| `/pdf-to-word` | PDF 转 Word - 免费在线转换 DOCX | PDF → DOCX | 已支持 | P0 |
+| `/word-to-pdf` | Word 转 PDF - 免费在线转换 | DOCX → PDF | 已支持 | P0 |
+| `/pdf-to-excel` | PDF 转 Excel - 在线转换 XLSX | PDF → XLSX | 已支持 | P0 |
+| `/pdf-to-ppt` | PDF 转 PPT - 在线转换 PPTX | PDF → PPTX | 已支持 | P1 |
+| `/pdf-encrypt` | PDF 加密 - 在线给 PDF 设置密码 | PDF 加密 | 已支持 | P0 |
+| `/pdf-decrypt` | PDF 解密 - 在线去除 PDF 密码 | PDF 解密 | 已支持 | P0 |
+| `/pdf-merge` | PDF 合并 - 多个 PDF 合成一个文件 | PDF 合并 | 已支持 | P1 |
+| `/pdf-split` | PDF 拆分 - 按页拆分 PDF 文件 | PDF 拆分 | 已支持 | P1 |
+| `/heic-to-jpg` | HEIC 转 JPG - 免费图片格式转换 | HEIC → JPG | 已支持 | P1 |
+| `/epub-to-pdf` | EPUB 转 PDF - 在线电子书转换 | EPUB → PDF | 已支持 | P1 |
 
 ## 落地页要求
 
@@ -255,7 +255,7 @@ Disallow: /api/
 3. sitemap 自动读取 SEO 页面配置。
 4. 页面缓存策略覆盖新增落地页。
 
-### 第二阶段：首批 10 个页面
+### 第二阶段：首批 10 个 SEO 页面
 
 优先做：
 
