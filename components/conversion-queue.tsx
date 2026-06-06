@@ -4,6 +4,8 @@ import { Archive, Download, Play, Trash2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { QueueItem, formatFileSize, isHeavyConversion } from '@/lib/conversion-config'
 
+const queueGridClass = "grid grid-cols-[minmax(220px,1fr)_90px_130px_80px_240px_90px] gap-4"
+
 interface ConversionQueueProps {
   items: QueueItem[]
   onClear: () => void
@@ -73,7 +75,7 @@ function StatusBadge({
           ) : null}
         </div>
         {heavy && (
-          <span className="block text-xs text-muted-foreground">大文件可能需要 3-5 分钟</span>
+          <span className="block text-xs text-muted-foreground">估算进度，大文件可能需要 3-5 分钟</span>
         )}
       </div>
     )
@@ -137,7 +139,7 @@ export function ConversionQueue({
       </div>
 
       {/* Table Header */}
-      <div className="grid grid-cols-[1fr_80px_120px_80px_120px_60px] gap-4 border-b border-border bg-muted/50 px-4 py-2 text-sm text-muted-foreground">
+      <div className={cn(queueGridClass, "border-b border-border bg-muted/50 px-4 py-2 text-sm text-muted-foreground")}>
         <span>文件</span>
         <span>大小</span>
         <span>方向</span>
@@ -157,7 +159,7 @@ export function ConversionQueue({
           items.map((item) => (
             <div
               key={item.id}
-              className="grid grid-cols-[1fr_80px_120px_80px_120px_60px] items-center gap-4 border-b border-border px-4 py-3 last:border-b-0"
+              className={cn(queueGridClass, "items-center border-b border-border px-4 py-3 last:border-b-0")}
             >
               {/* File Info */}
               <div className="flex items-center gap-3 min-w-0">
@@ -213,7 +215,7 @@ export function ConversionQueue({
                   </div>
                 )}
                 {item.status === 'failed' && item.errorMessage && (
-                  <p className="text-xs text-destructive/80 truncate max-w-[120px]">
+                  <p className="max-w-[240px] whitespace-normal break-words text-xs leading-5 text-destructive/80">
                     {item.errorMessage}
                   </p>
                 )}

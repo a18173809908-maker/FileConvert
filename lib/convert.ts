@@ -102,6 +102,18 @@ function startsWithBytes(bytes: Uint8Array, expected: number[]): boolean {
   return expected.every((value, index) => bytes[index] === value)
 }
 
+function estimateJobProgress(job: { status?: string; createdAt?: number; startedAt?: number; heavy?: boolean }): number {
+  if (job.status === 'queued') return 3
+  if (job.status !== 'running') return 0
+
+  const startedAt = job.startedAt || job.createdAt || Date.now()
+  const elapsed = Math.max(Date.now() - startedAt, 0)
+  const expectedMs = job.heavy ? 5 * 60 * 1000 : 45 * 1000
+  const ratio = Math.min(elapsed / expectedMs, 1)
+  const eased = 1 - Math.pow(1 - ratio, 2)
+  return Math.min(95, Math.max(8, Math.round(8 + eased * 87)))
+}
+
 async function validateServerResultBlob(blob: Blob, toFormat: string): Promise<Blob> {
   const format = toFormat.toLowerCase()
   const contentType = blob.type.toLowerCase()
@@ -158,7 +170,11 @@ async function validateServerResultBlob(blob: Blob, toFormat: string): Promise<B
   return blob
 }
 
-async function pollConversionJob(jobId: string, toFormat: string): Promise<Blob> {
+async function pollConversionJob(
+  jobId: string,
+  toFormat: string,
+  onProgress?: (current: number, total: number) => void,
+): Promise<Blob> {
   const deadline = Date.now() + 30 * 60 * 1000
   let delay = 1000
 
@@ -170,6 +186,8 @@ async function pollConversionJob(jobId: string, toFormat: string): Promise<Blob>
 
     const data = await statusRes.json()
     const job = data?.job
+    const estimated = estimateJobProgress(job || {})
+    if (estimated > 0) onProgress?.(estimated, 100)
     if (job?.status === 'completed') {
       const resultRes = await fetch(`/api/convert/jobs/${jobId}/download`, { cache: 'no-store' })
       if (!resultRes.ok) {
@@ -180,7 +198,9 @@ async function pollConversionJob(jobId: string, toFormat: string): Promise<Blob>
         const message = await readErrorMessage(resultRes, '转换结果尚未生成，请稍后再试')
         throw new Error(message)
       }
-      return await validateServerResultBlob(await resultRes.blob(), toFormat)
+      const blob = await validateServerResultBlob(await resultRes.blob(), toFormat)
+      onProgress?.(100, 100)
+      return blob
     }
 
     if (job?.status === 'failed') {
@@ -194,7 +214,11 @@ async function pollConversionJob(jobId: string, toFormat: string): Promise<Blob>
   throw new Error('转换任务等待超时，请稍后重试')
 }
 
-async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
+async function convertViaServer(
+  file: File,
+  toFormat: string,
+  onProgress?: (current: number, total: number) => void,
+): Promise<Blob> {
   let res = await postConvert(file, toFormat)
 
   // 429 / 503：按 Retry-After 等待后自动重试一次
@@ -208,13 +232,16 @@ async function convertViaServer(file: File, toFormat: string): Promise<Blob> {
     const data = await res.json()
     const jobId = data?.job?.id
     if (!jobId) throw new Error('服务端未返回转换任务 ID')
-    return await pollConversionJob(jobId, toFormat)
+    onProgress?.(3, 100)
+    return await pollConversionJob(jobId, toFormat, onProgress)
   }
 
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, `服务端转换失败 (${res.status})`))
   }
-  return await validateServerResultBlob(await res.blob(), toFormat)
+  const blob = await validateServerResultBlob(await res.blob(), toFormat)
+  onProgress?.(100, 100)
+  return blob
 }
 
 export interface ConvertOptions {
@@ -250,7 +277,7 @@ export async function convertFile(
   }
 
   if (canConvertServer(f, t)) {
-    return convertViaServer(file, t)
+    return convertViaServer(file, t, options.onProgress)
   }
 
   throw new Error(`暂不支持 ${f.toUpperCase()} → ${t.toUpperCase()}`)
