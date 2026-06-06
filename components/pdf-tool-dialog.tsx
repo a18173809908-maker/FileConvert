@@ -21,6 +21,7 @@ import {
   getPdfPageCount,
   SplitMode,
   securePdf,
+  compressPdf,
 } from '@/lib/pdf-tools'
 import { formatFileSize, getFileExtension } from '@/lib/conversion-config'
 
@@ -28,6 +29,7 @@ const TITLES: Record<PdfToolId, string> = {
   merge: 'PDF 合并',
   split: 'PDF 拆分',
   rotate: 'PDF 旋转',
+  compress: 'PDF 压缩',
   encrypt: 'PDF 加密',
   decrypt: 'PDF 解密',
 }
@@ -36,6 +38,7 @@ const DESCRIPTIONS: Record<PdfToolId, string> = {
   merge: '将多个 PDF 按顺序合并成一个文件，全程在浏览器本地完成',
   split: '把 PDF 拆成多个文件，按页或按指定范围，打包成 zip',
   rotate: '旋转所有页面，90° / 180° / 270°',
+  compress: '轻量优化 PDF 结构和数据流，尽量减小文件体积',
   encrypt: '为 PDF 设置打开密码，生成受密码保护的新文件',
   decrypt: '输入已加密 PDF 的密码，生成去除打开密码的新文件',
 }
@@ -149,6 +152,9 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
         case 'rotate':
           blob = await rotatePdf(files[0], rotateDegree)
           break
+        case 'compress':
+          blob = await compressPdf(files[0])
+          break
         case 'encrypt':
           if (password.length < 1) throw new Error('请输入 PDF 打开密码')
           if (password !== confirmPassword) throw new Error('两次输入的密码不一致')
@@ -193,6 +199,7 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
       merge: 'merge',
       split: 'split',
       rotate: 'rotate',
+      compress: 'compressed',
       encrypt: 'encrypted',
       decrypt: 'decrypted',
     }
@@ -213,6 +220,7 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
     tool === 'merge' ? files.length >= 2 :
     tool === 'encrypt' ? files.length >= 1 && password.length > 0 && password === confirmPassword :
     tool === 'decrypt' ? files.length >= 1 && password.length > 0 :
+    tool === 'compress' ? files.length === 1 :
     tool ? files.length === 1 : false
 
   return (
@@ -329,6 +337,12 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {tool === 'compress' && files.length === 1 && (
+            <div className="rounded-md border border-border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
+              当前为低负载压缩：优化 PDF 内部结构和数据流，不做图片降采样。这样更稳定，也不会给服务器造成过大压力；如果 PDF 本身已经优化过，体积变化可能不明显。
             </div>
           )}
 

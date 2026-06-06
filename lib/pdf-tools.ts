@@ -4,10 +4,10 @@
 import { PDFDocument, degrees } from 'pdf-lib'
 import JSZip from 'jszip'
 
-export type PdfToolId = 'merge' | 'split' | 'rotate' | 'encrypt' | 'decrypt'
+export type PdfToolId = 'merge' | 'split' | 'rotate' | 'compress' | 'encrypt' | 'decrypt'
 
 export function isPdfTool(to: string): to is PdfToolId {
-  return to === 'merge' || to === 'split' || to === 'rotate' || to === 'encrypt' || to === 'decrypt'
+  return to === 'merge' || to === 'split' || to === 'rotate' || to === 'compress' || to === 'encrypt' || to === 'decrypt'
 }
 
 async function loadPdf(file: File): Promise<PDFDocument> {
@@ -137,6 +137,23 @@ export async function securePdf(
   const res = await fetch('/api/pdf/security', { method: 'POST', body: form })
   if (!res.ok) {
     let message = action === 'encrypt' ? 'PDF 加密失败' : 'PDF 解密失败'
+    try {
+      const data = await res.json()
+      if (data?.error) message = data.error
+    } catch {}
+    throw new Error(message)
+  }
+  return await res.blob()
+}
+
+export async function compressPdf(file: File): Promise<Blob> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('action', 'compress')
+
+  const res = await fetch('/api/pdf/security', { method: 'POST', body: form })
+  if (!res.ok) {
+    let message = 'PDF 压缩失败'
     try {
       const data = await res.json()
       if (data?.error) message = data.error

@@ -82,7 +82,7 @@ const structuredData = {
     '图片格式转换',
     'Markdown 转 HTML/PDF',
     'CSV 与 Excel 互转',
-    'PDF 合并、拆分、旋转、加密、解密',
+    'PDF 合并、拆分、旋转、压缩、加密、解密',
   ],
   publisher: {
     '@type': 'Organization',

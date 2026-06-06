@@ -41,7 +41,7 @@ function runQpdf(args: string[], cwd: string): Promise<void> {
   })
 }
 
-function normalizeQpdfError(err: unknown, action: 'encrypt' | 'decrypt'): Error {
+function normalizeQpdfError(err: unknown, action: 'encrypt' | 'decrypt' | 'compress'): Error {
   const message = err instanceof Error ? err.message : String(err)
   if (/invalid password|incorrect password|password/i.test(message) && action === 'decrypt') {
     return new Error('PDF 密码不正确，无法解密')
@@ -50,9 +50,11 @@ function normalizeQpdfError(err: unknown, action: 'encrypt' | 'decrypt'): Error 
     return new Error('该 PDF 未加密，无需解密')
   }
   if (/qpdf 启动失败/i.test(message)) {
-    return new Error('服务器未安装 qpdf，暂时无法处理 PDF 加密/解密')
+    return new Error('服务器未安装 qpdf，暂时无法处理 PDF 工具')
   }
-  return new Error(action === 'encrypt' ? `PDF 加密失败: ${message}` : `PDF 解密失败: ${message}`)
+  if (action === 'encrypt') return new Error(`PDF 加密失败: ${message}`)
+  if (action === 'decrypt') return new Error(`PDF 解密失败: ${message}`)
+  return new Error(`PDF 压缩失败: ${message}`)
 }
 
 export async function encryptPdf(input: Buffer, password: string): Promise<Buffer> {
@@ -98,6 +100,29 @@ export async function decryptPdf(input: Buffer, password: string): Promise<Buffe
       return await readFile(outputPath)
     } catch (err) {
       throw normalizeQpdfError(err, 'decrypt')
+    }
+  })
+}
+
+export async function compressPdf(input: Buffer): Promise<Buffer> {
+  return withTempDir(async (dir) => {
+    const inputPath = join(dir, 'input.pdf')
+    const outputPath = join(dir, 'output.pdf')
+    await writeFile(inputPath, input)
+
+    try {
+      await runQpdf([
+        '--object-streams=generate',
+        '--stream-data=compress',
+        '--recompress-flate',
+        '--compression-level=9',
+        inputPath,
+        outputPath,
+      ], dir)
+      const output = await readFile(outputPath)
+      return output.length < input.length ? output : input
+    } catch (err) {
+      throw normalizeQpdfError(err, 'compress')
     }
   })
 }

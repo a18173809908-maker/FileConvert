@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getClientIp, withConcurrencyLimit, semaphoreStats } from '@/lib/server/limiter'
 import { getFileExtension } from '@/lib/conversion-config'
-import { decryptPdf, encryptPdf } from '@/lib/server/qpdf'
+import { compressPdf, decryptPdf, encryptPdf } from '@/lib/server/qpdf'
 import { logConversionError, logConversionInfo } from '@/lib/server/conversion-logger'
 
 export const runtime = 'nodejs'
@@ -39,19 +39,21 @@ export async function POST(req: NextRequest) {
     if (file.size > 100 * 1024 * 1024) {
       return NextResponse.json({ error: 'PDF 单个不能超过 100 MB' }, { status: 413 })
     }
-    if (action !== 'encrypt' && action !== 'decrypt') {
-      return NextResponse.json({ error: '不支持的 PDF 安全操作' }, { status: 400 })
+    if (action !== 'encrypt' && action !== 'decrypt' && action !== 'compress') {
+      return NextResponse.json({ error: '不支持的 PDF 操作' }, { status: 400 })
     }
-    if (password.length < 1) {
+    if ((action === 'encrypt' || action === 'decrypt') && password.length < 1) {
       return NextResponse.json({ error: '请输入 PDF 密码' }, { status: 400 })
     }
 
     const input = Buffer.from(await file.arrayBuffer())
     let buffer: Buffer
     try {
-      buffer = await withConcurrencyLimit(() =>
-        action === 'encrypt' ? encryptPdf(input, password) : decryptPdf(input, password)
-      )
+      buffer = await withConcurrencyLimit(() => {
+        if (action === 'encrypt') return encryptPdf(input, password)
+        if (action === 'decrypt') return decryptPdf(input, password)
+        return compressPdf(input)
+      })
     } catch (err) {
       if (err instanceof Error && err.message === 'SEMAPHORE_TIMEOUT') {
         logConversionError('pdf_security_failed', {

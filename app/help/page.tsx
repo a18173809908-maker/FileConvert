@@ -35,7 +35,7 @@ const faqItems = [
   {
     icon: FileText,
     question: '支持哪些文件格式？',
-    answer: '图片：JPG/PNG/WEBP/BMP/GIF/SVG 任意互转。PDF：PDF → Word、PDF ↔ TXT/JPG/PNG，合并/拆分/旋转。文档：DOCX ↔ TXT，Word ↔ PDF，DOC ↔ DOCX。其他：HTML → PDF，EPUB → PDF，TXT → PDF/DOCX。具体能转哪几对，看左侧侧边栏，没"敬请期待"标的都能用。',
+    answer: '图片：JPG/PNG/WEBP/BMP/GIF/SVG 任意互转。PDF：PDF → Word、PDF ↔ TXT/JPG/PNG，合并/拆分/旋转/压缩/加密/解密。文档：DOCX ↔ TXT，Word ↔ PDF，DOC ↔ DOCX。其他：HTML → PDF，EPUB → PDF，TXT → PDF/DOCX。具体能转哪几对，看左侧侧边栏，没"敬请期待"标的都能用。',
   },
   {
     icon: Upload,
