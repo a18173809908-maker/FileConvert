@@ -238,7 +238,7 @@ export function ConversionQueue({
                     <Download className="h-4 w-4" />
                   </button>
                 )}
-                {item.status === 'failed' && item.sourceFile && (
+                {item.status === 'failed' && (
                   <button
                     onClick={() => onRetryItem(item.id)}
                     disabled={convertingCount > 0}

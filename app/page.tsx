@@ -373,12 +373,47 @@ function HomePageInner() {
   }, [])
 
   const handleRetryItem = useCallback((id: string) => {
-    setQueueItems(prev => prev.map(item =>
-      item.id === id
-        ? { ...item, status: 'queued' as const, progress: undefined, errorMessage: undefined }
-        : item
-    ))
-  }, [])
+    const item = queueItems.find(i => i.id === id)
+    if (!item) return
+
+    if (item.sourceFile) {
+      setQueueItems(prev => prev.map(i =>
+        i.id === id
+          ? { ...i, status: 'queued' as const, progress: undefined, errorMessage: undefined }
+          : i
+      ))
+      return
+    }
+
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = item.fromFormat ? `.${item.fromFormat}` : ''
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      const ext = getFileExtension(file.name)
+      if (ext !== item.fromFormat) {
+        toast.error(`请选择 .${item.fromFormat} 文件`, { description: file.name })
+        return
+      }
+      setQueueItems(prev => prev.map(i =>
+        i.id === id
+          ? {
+              ...i,
+              fileName: file.name,
+              fileSize: file.size,
+              fileType: ext,
+              sourceFile: file,
+              status: 'queued' as const,
+              progress: undefined,
+              errorMessage: undefined,
+            }
+          : i
+      ))
+      toast.success('已重新添加文件', { description: '点击转换继续重试' })
+    }
+    input.click()
+  }, [queueItems])
 
   const handleAddFiles = useCallback(() => {
     const input = document.createElement('input')
