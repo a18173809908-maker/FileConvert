@@ -25,7 +25,7 @@ const faqItems = [
   {
     icon: Clock,
     question: '转换需要多长时间？',
-    answer: '取决于转换类型：浏览器内的图片转换通常 < 1 秒；轻量级服务端转换（TXT/SVG）一般 1-3 秒；Word ↔ PDF / EPUB → PDF 这种走 LibreOffice 的重型转换通常 3-10 秒。',
+    answer: '取决于转换类型：浏览器内的图片转换通常 < 1 秒；轻量级服务端转换（TXT/SVG）一般 1-3 秒；Word ↔ PDF / EPUB → PDF 这种重型转换通常 3-10 秒；PDF → Word 等复杂文档解析可能需要 1-5 分钟。',
   },
   {
     icon: CreditCard,
@@ -35,7 +35,7 @@ const faqItems = [
   {
     icon: FileText,
     question: '支持哪些文件格式？',
-    answer: '图片：JPG/PNG/WEBP/BMP/GIF/SVG 任意互转。PDF：PDF ↔ TXT/JPG/PNG，合并/拆分/旋转。文档：DOCX ↔ TXT，Word ↔ PDF，DOC ↔ DOCX。其他：HTML → PDF，EPUB → PDF，TXT → PDF/DOCX。具体能转哪几对，看左侧侧边栏，没"敬请期待"标的都能用。',
+    answer: '图片：JPG/PNG/WEBP/BMP/GIF/SVG 任意互转。PDF：PDF → Word、PDF ↔ TXT/JPG/PNG，合并/拆分/旋转。文档：DOCX ↔ TXT，Word ↔ PDF，DOC ↔ DOCX。其他：HTML → PDF，EPUB → PDF，TXT → PDF/DOCX。具体能转哪几对，看左侧侧边栏，没"敬请期待"标的都能用。',
   },
   {
     icon: Upload,
@@ -50,7 +50,7 @@ const faqItems = [
   {
     icon: AlertCircle,
     question: '为什么有些转换标"敬请期待"？',
-    answer: '比如 PDF → Word、PDF → EPUB——这类反向解析对开源工具来说精度太低，强行做出来的结果用户没法看。如果有强烈需求我们再评估接商业 API。',
+    answer: '标"敬请期待"的方向代表暂未开放，通常是因为转换质量、速度或稳定性还没有达到可上线标准。PDF → Word 已接入高精度转换服务并开放使用；像 PDF → EPUB 这类版式重排更复杂的方向，会在评估质量和成本后再上线。',
   },
 ]
 
