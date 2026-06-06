@@ -10,6 +10,7 @@ interface ConversionQueueProps {
   onDownloadAll: () => void
   onDownloadItem: (item: QueueItem) => void
   onStartConversion: () => void
+  onRetryItem: (id: string) => void
   onRemoveItem: (id: string) => void
   onAddFiles: () => void
 }
@@ -100,6 +101,7 @@ export function ConversionQueue({
   onDownloadAll,
   onDownloadItem,
   onStartConversion,
+  onRetryItem,
   onRemoveItem,
   onAddFiles,
 }: ConversionQueueProps) {
@@ -232,6 +234,16 @@ export function ConversionQueue({
                 {item.status === 'completed' && (
                   <button onClick={() => onDownloadItem(item)} className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90">
                     <Download className="h-4 w-4" />
+                  </button>
+                )}
+                {item.status === 'failed' && item.sourceFile && (
+                  <button
+                    onClick={() => onRetryItem(item.id)}
+                    disabled={convertingCount > 0}
+                    className="flex h-8 items-center gap-1 rounded bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Play className="h-3.5 w-3.5" />
+                    重试
                   </button>
                 )}
                 {item.status === 'converting' && (

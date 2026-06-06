@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils'
 import { CONVERSION_CATEGORIES, isConversionSupported } from '@/lib/conversion-config'
 import { ImageToolDialog } from '@/components/image-tool-dialog'
 import { ImageToolId, isImageTool } from '@/lib/image-tools'
-import { PdfToolDialog } from '@/components/pdf-tool-dialog'
 import { PdfToolId, isPdfTool } from '@/lib/pdf-tools'
 import { JsonToolDialog } from '@/components/json-tool-dialog'
 
@@ -23,12 +22,12 @@ const iconMap: Record<string, React.ElementType> = {
 interface SidebarNavProps {
   selectedConversion: string | null
   onSelectConversion: (conversion: string, from: string, to: string) => void
+  onOpenPdfTool: (tool: PdfToolId) => void
 }
 
-export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNavProps) {
+export function SidebarNav({ selectedConversion, onSelectConversion, onOpenPdfTool }: SidebarNavProps) {
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['pdf'])
   const [activeTool, setActiveTool] = useState<ImageToolId | null>(null)
-  const [activePdfTool, setActivePdfTool] = useState<PdfToolId | null>(null)
   const [jsonOpen, setJsonOpen] = useState(false)
 
   const toggleCategory = (categoryId: string) => {
@@ -97,7 +96,7 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
                         }
                         // PDF 工具：同样开 Dialog
                         if (conversion.from === 'pdf' && isPdfTool(conversion.to)) {
-                          setActivePdfTool(conversion.to)
+                          onOpenPdfTool(conversion.to)
                           return
                         }
                         // JSON 工具
@@ -160,7 +159,6 @@ export function SidebarNav({ selectedConversion, onSelectConversion }: SidebarNa
       </div>
 
       <ImageToolDialog tool={activeTool} onClose={() => setActiveTool(null)} />
-      <PdfToolDialog tool={activePdfTool} onClose={() => setActivePdfTool(null)} />
       <JsonToolDialog open={jsonOpen} onClose={() => setJsonOpen(false)} />
     </aside>
   )

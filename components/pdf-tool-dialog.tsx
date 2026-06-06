@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import JSZip from 'jszip'
 import {
   Dialog,
   DialogContent,
@@ -90,7 +91,7 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
       return true
     })
     if (valid.length === 0) return
-    if (tool === 'merge') {
+    if (tool === 'merge' || tool === 'encrypt' || tool === 'decrypt') {
       setFiles(prev => [...prev, ...valid])
     } else {
       setFiles([valid[0]])
@@ -102,7 +103,7 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.pdf'
-    input.multiple = tool === 'merge'
+    input.multiple = tool === 'merge' || tool === 'encrypt' || tool === 'decrypt'
     input.onchange = (e) => {
       const picked = Array.from((e.target as HTMLInputElement).files || [])
       if (picked.length > 0) addFiles(picked)
@@ -151,11 +152,29 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
         case 'encrypt':
           if (password.length < 1) throw new Error('请输入 PDF 打开密码')
           if (password !== confirmPassword) throw new Error('两次输入的密码不一致')
-          blob = await securePdf(files[0], 'encrypt', password)
+          if (files.length === 1) {
+            blob = await securePdf(files[0], 'encrypt', password)
+          } else {
+            const zip = new JSZip()
+            for (const file of files) {
+              const encrypted = await securePdf(file, 'encrypt', password)
+              zip.file(`${file.name.replace(/\.pdf$/i, '')}_encrypted.pdf`, encrypted)
+            }
+            blob = await zip.generateAsync({ type: 'blob' })
+          }
           break
         case 'decrypt':
           if (password.length < 1) throw new Error('请输入 PDF 密码')
-          blob = await securePdf(files[0], 'decrypt', password)
+          if (files.length === 1) {
+            blob = await securePdf(files[0], 'decrypt', password)
+          } else {
+            const zip = new JSZip()
+            for (const file of files) {
+              const decrypted = await securePdf(file, 'decrypt', password)
+              zip.file(`${file.name.replace(/\.pdf$/i, '')}_decrypted.pdf`, decrypted)
+            }
+            blob = await zip.generateAsync({ type: 'blob' })
+          }
           break
       }
       setResultBlob(blob)
@@ -169,7 +188,7 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
   const handleDownload = useCallback(() => {
     if (!resultBlob || !tool) return
     const base = files[0]?.name.replace(/\.pdf$/i, '') || 'output'
-    const isZip = resultBlob.type === 'application/zip'
+    const isZip = resultBlob.type === 'application/zip' || files.length > 1
     const suffix: Record<PdfToolId, string> = {
       merge: 'merge',
       split: 'split',
@@ -192,8 +211,8 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
   const description = tool ? DESCRIPTIONS[tool] : ''
   const canApply =
     tool === 'merge' ? files.length >= 2 :
-    tool === 'encrypt' ? files.length === 1 && password.length > 0 && password === confirmPassword :
-    tool === 'decrypt' ? files.length === 1 && password.length > 0 :
+    tool === 'encrypt' ? files.length >= 1 && password.length > 0 && password === confirmPassword :
+    tool === 'decrypt' ? files.length >= 1 && password.length > 0 :
     tool ? files.length === 1 : false
 
   return (
@@ -211,7 +230,13 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
             className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 py-8 text-muted-foreground hover:border-primary/50 hover:bg-muted/50"
           >
             <Upload className="h-7 w-7" />
-            <span>{tool === 'merge' ? '点击添加多个 PDF（至少 2 个）' : '点击选择 PDF'}</span>
+            <span>
+              {tool === 'merge'
+                ? '点击添加多个 PDF（至少 2 个）'
+                : tool === 'encrypt' || tool === 'decrypt'
+                  ? '点击添加一个或多个 PDF'
+                  : '点击选择 PDF'}
+            </span>
             <span className="text-xs">仅支持 .pdf，单文件 ≤ 100MB</span>
           </button>
 
@@ -308,7 +333,7 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
           )}
 
           {/* 加密 / 解密参数 */}
-          {(tool === 'encrypt' || tool === 'decrypt') && files.length === 1 && (
+          {(tool === 'encrypt' || tool === 'decrypt') && files.length >= 1 && (
             <div className="space-y-3 rounded-md border border-border p-3">
               <div className="space-y-1">
                 <Label htmlFor="pdf-password">
@@ -349,8 +374,12 @@ export function PdfToolDialog({ tool, onClose }: PdfToolDialogProps) {
 
               <p className="text-xs text-muted-foreground">
                 {tool === 'encrypt'
-                  ? '加密后的 PDF 需要输入密码才能打开，请妥善保存密码。'
-                  : '解密只会生成新的 PDF 文件，不会修改原文件。'}
+                  ? files.length > 1
+                    ? '多个 PDF 会依次加密并打包为 ZIP，请妥善保存密码。'
+                    : '加密后的 PDF 需要输入密码才能打开，请妥善保存密码。'
+                  : files.length > 1
+                    ? '多个 PDF 会依次解密并打包为 ZIP，不会修改原文件。'
+                    : '解密只会生成新的 PDF 文件，不会修改原文件。'}
               </p>
             </div>
           )}

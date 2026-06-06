@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
@@ -9,12 +9,69 @@ import { SidebarNav } from '@/components/sidebar-nav'
 import { UploadZone } from '@/components/upload-zone'
 import { ConversionQueue } from '@/components/conversion-queue'
 import { AccountPanel } from '@/components/account-panel'
+import { PdfToolDialog } from '@/components/pdf-tool-dialog'
+import { PdfToolShortcuts } from '@/components/pdf-tool-shortcuts'
 import { QueueItem, getConversionPoints, getFileExtension } from '@/lib/conversion-config'
 import { convertFile, canConvert, getConvertedFileName } from '@/lib/convert'
+import { PdfToolId } from '@/lib/pdf-tools'
 import { useApp } from '@/lib/store'
+
+const QUEUE_STORAGE_KEY = 'fileconvert:queue:v1'
+const BLOB_DB_NAME = 'fileconvert-results'
+const BLOB_STORE_NAME = 'results'
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9)
+}
+
+type StoredQueueItem = Omit<QueueItem, 'sourceFile' | 'resultBlob' | 'downloadUrl'>
+
+function openBlobDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(BLOB_DB_NAME, 1)
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(BLOB_STORE_NAME)
+    }
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+async function putResultBlob(id: string, blob: Blob) {
+  if (typeof indexedDB === 'undefined') return
+  const db = await openBlobDb()
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(BLOB_STORE_NAME, 'readwrite')
+    tx.objectStore(BLOB_STORE_NAME).put(blob, id)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+  db.close()
+}
+
+async function getResultBlob(id: string): Promise<Blob | undefined> {
+  if (typeof indexedDB === 'undefined') return undefined
+  const db = await openBlobDb()
+  const blob = await new Promise<Blob | undefined>((resolve, reject) => {
+    const tx = db.transaction(BLOB_STORE_NAME, 'readonly')
+    const req = tx.objectStore(BLOB_STORE_NAME).get(id)
+    req.onsuccess = () => resolve(req.result as Blob | undefined)
+    req.onerror = () => reject(req.error)
+  })
+  db.close()
+  return blob
+}
+
+async function deleteResultBlob(id: string) {
+  if (typeof indexedDB === 'undefined') return
+  const db = await openBlobDb()
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(BLOB_STORE_NAME, 'readwrite')
+    tx.objectStore(BLOB_STORE_NAME).delete(id)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+  db.close()
 }
 
 function HomePageInner() {
@@ -26,6 +83,8 @@ function HomePageInner() {
   const [selectedTo, setSelectedTo] = useState('docx')
 
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
+  const [activePdfTool, setActivePdfTool] = useState<PdfToolId | null>(null)
+  const restoredRef = useRef(false)
 
   // 从 URL ?conversion=pdf-docx 读取预设
   useEffect(() => {
@@ -57,6 +116,48 @@ function HomePageInner() {
       }
     }
   }, [searchParams, refreshUser, user, setLoginDialogOpen])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || restoredRef.current) return
+    restoredRef.current = true
+
+    const restore = async () => {
+      try {
+        const raw = window.sessionStorage.getItem(QUEUE_STORAGE_KEY)
+        if (!raw) return
+        const stored = JSON.parse(raw) as StoredQueueItem[]
+        const restored = await Promise.all(stored.map(async (item) => {
+          const resultBlob = item.status === 'completed' ? await getResultBlob(item.id) : undefined
+          if (item.status === 'completed' && !resultBlob) {
+            return {
+              ...item,
+              status: 'failed' as const,
+              errorMessage: '页面刷新后结果文件已失效，请重新转换',
+              progress: undefined,
+            }
+          }
+          if (item.status === 'converting') {
+            return {
+              ...item,
+              status: 'failed' as const,
+              errorMessage: '页面刷新后转换状态已中断，请重新添加文件转换',
+              progress: undefined,
+            }
+          }
+          return { ...item, resultBlob }
+        }))
+        setQueueItems(restored)
+      } catch {}
+    }
+
+    void restore()
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !restoredRef.current) return
+    const serializable: StoredQueueItem[] = queueItems.map(({ sourceFile, resultBlob, downloadUrl, ...item }) => item)
+    window.sessionStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(serializable))
+  }, [queueItems])
 
   const handleSelectConversion = useCallback((conversionId: string, from: string, to: string) => {
     setSelectedConversion(conversionId)
@@ -92,7 +193,10 @@ function HomePageInner() {
     setQueueItems(prev => [...prev, ...newItems])
   }, [selectedTo])
 
-  const handleClear = useCallback(() => setQueueItems([]), [])
+  const handleClear = useCallback(() => {
+    void Promise.all(queueItems.map(item => deleteResultBlob(item.id))).catch(() => {})
+    setQueueItems([])
+  }, [queueItems])
 
   const handleDownloadItem = useCallback((item: QueueItem) => {
     const blob = item.resultBlob || new Blob([item.fileName], { type: 'application/octet-stream' })
@@ -172,6 +276,9 @@ function HomePageInner() {
       toast.error(`积分不足：需要 ${totalCost}，当前 ${user.points}`)
       return
     }
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
 
     for (const item of queued) {
       if (!item.sourceFile) {
@@ -194,6 +301,12 @@ function HomePageInner() {
       ))
 
       try {
+        const startedHeavy = item.fileSize > 5 * 1024 * 1024 || ['pdf', 'docx', 'doc', 'xlsx', 'pptx'].includes(item.fromFormat)
+        if (startedHeavy) {
+          toast.info('已开始转换', {
+            description: '大文件可能需要几分钟，完成后会在队列中提示',
+          })
+        }
         const blob = await convertFile(item.sourceFile, item.fromFormat, item.toFormat, {
           onProgress: (current, total) => {
             const pct = Math.round((current / total) * 100)
@@ -215,23 +328,50 @@ function HomePageInner() {
           refreshUser()
         } catch {}
 
+        await putResultBlob(item.id, blob).catch(() => {})
         setQueueItems(prev => prev.map(i =>
           i.id === item.id
             ? { ...i, status: 'completed' as const, progress: 100, resultBlob: blob }
             : i
         ))
+        toast.success('转换完成', {
+          description: getConvertedFileName(item.fileName, item.toFormat, blob),
+        })
+        if (typeof document !== 'undefined') {
+          const oldTitle = document.title
+          document.title = '转换完成 - 文件侠'
+          window.setTimeout(() => {
+            if (document.title === '转换完成 - 文件侠') document.title = oldTitle
+          }, 8000)
+        }
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          new Notification('文件侠：转换完成', {
+            body: getConvertedFileName(item.fileName, item.toFormat, blob),
+          })
+        }
       } catch (err) {
+        const message = err instanceof Error ? err.message : '转换失败'
         setQueueItems(prev => prev.map(i =>
           i.id === item.id
-            ? { ...i, status: 'failed' as const, errorMessage: err instanceof Error ? err.message : '转换失败' }
+            ? { ...i, status: 'failed' as const, errorMessage: message }
             : i
         ))
+        toast.error('转换失败', { description: message })
       }
     }
   }, [user, queueItems, setLoginDialogOpen, refreshUser])
 
   const handleRemoveItem = useCallback((id: string) => {
+    void deleteResultBlob(id).catch(() => {})
     setQueueItems(prev => prev.filter(item => item.id !== id))
+  }, [])
+
+  const handleRetryItem = useCallback((id: string) => {
+    setQueueItems(prev => prev.map(item =>
+      item.id === id
+        ? { ...item, status: 'queued' as const, progress: undefined, errorMessage: undefined }
+        : item
+    ))
   }, [])
 
   const handleAddFiles = useCallback(() => {
@@ -252,6 +392,7 @@ function HomePageInner() {
         <SidebarNav
           selectedConversion={selectedConversion}
           onSelectConversion={handleSelectConversion}
+          onOpenPdfTool={setActivePdfTool}
         />
         <main className="flex-1 p-6">
           <div className="mx-auto max-w-4xl space-y-6">
@@ -261,12 +402,14 @@ function HomePageInner() {
               onSelectTo={handleSelectTo}
               onFilesSelected={handleFilesSelected}
             />
+            <PdfToolShortcuts onOpenTool={setActivePdfTool} />
             <ConversionQueue
               items={queueItems}
               onClear={handleClear}
               onDownloadAll={handleDownloadAll}
               onDownloadItem={handleDownloadItem}
               onStartConversion={handleStartConversion}
+              onRetryItem={handleRetryItem}
               onRemoveItem={handleRemoveItem}
               onAddFiles={handleAddFiles}
             />
@@ -298,6 +441,7 @@ function HomePageInner() {
         </main>
         <AccountPanel />
       </div>
+      <PdfToolDialog tool={activePdfTool} onClose={() => setActivePdfTool(null)} />
     </div>
   )
 }

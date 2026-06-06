@@ -62,10 +62,26 @@ async function postConvert(file: File, toFormat: string): Promise<Response> {
 function normalizeServerError(status: number, message: string): string {
   if (status === 429) return '请求过于频繁，请稍后再试'
   if (status === 503) return '服务繁忙，请稍后重试'
-  if (status === 502 || status === 504) return '转换超时，大文件请稍后重试或单独转换'
-  if (status === 413) return '文件超过大小限制'
-  if (/Adobe 转换仍在处理中/.test(message)) return 'Adobe 转换仍在处理中，大 PDF 请稍后重试或拆分后转换'
-  if (/Adobe PDF 转 Word 失败/.test(message)) return 'Adobe PDF 转 Word 失败，建议拆分 PDF 后重试'
+  if (status === 502 || status === 504) return '转换超时：大文件可能仍在处理，请稍后重试或拆分后再转'
+  if (status === 413) return '文件超过大小限制：请压缩或拆分文件后再上传'
+  if (/Adobe 转换仍在处理中|Adobe job polling timeout|AdobeJobTimeout/i.test(message)) {
+    return 'Adobe 正在处理：大 PDF 可能需要更久，请稍后重试或拆分后转换'
+  }
+  if (/Adobe PDF 转 Word 失败|Adobe job failed|Adobe startJob failed|Adobe pollJob failed/i.test(message)) {
+    return 'Adobe 转换失败：文件可能包含复杂版式、扫描页或异常对象，建议拆分 PDF 后重试'
+  }
+  if (/password|encrypted|加密|密码|PasswordException/i.test(message)) {
+    return '文件需要密码或密码不正确：请先解密 PDF，或确认密码后重试'
+  }
+  if (/invalid|corrupt|damaged|损坏|解析失败|InvalidPDF|XRefParse/i.test(message)) {
+    return '文件可能已损坏或结构异常：请重新导出文件后再试'
+  }
+  if (/转换结果异常/i.test(message)) {
+    return message
+  }
+  if (/LibreOffice|soffice|exit|退出码/i.test(message)) {
+    return `转换结果异常：${message}`
+  }
   return message
 }
 
