@@ -91,9 +91,14 @@ async function pollConversionJob(jobId: string): Promise<Blob> {
     const data = await statusRes.json()
     const job = data?.job
     if (job?.status === 'completed') {
-      const resultRes = await fetch(`/api/convert/jobs/${jobId}?download=1`, { cache: 'no-store' })
+      const resultRes = await fetch(`/api/convert/jobs/${jobId}/download`, { cache: 'no-store' })
       if (!resultRes.ok) {
         throw new Error(await readErrorMessage(resultRes, `下载转换结果失败 (${resultRes.status})`))
+      }
+      const contentType = resultRes.headers.get('Content-Type') || ''
+      if (contentType.includes('application/json')) {
+        const message = await readErrorMessage(resultRes, '转换结果尚未生成，请稍后再试')
+        throw new Error(message)
       }
       return await resultRes.blob()
     }
