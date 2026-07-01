@@ -11,7 +11,7 @@ import { ConversionQueue } from '@/components/conversion-queue'
 import { AccountPanel } from '@/components/account-panel'
 import { PdfToolDialog } from '@/components/pdf-tool-dialog'
 import { PdfToolShortcuts } from '@/components/pdf-tool-shortcuts'
-import { QueueItem, getConversionPoints, getFileExtension } from '@/lib/conversion-config'
+import { QueueItem, getFileExtension } from '@/lib/conversion-config'
 import { convertFile, canConvert, getConvertedFileName } from '@/lib/convert'
 import { PdfToolId } from '@/lib/pdf-tools'
 import { useApp } from '@/lib/store'
@@ -176,7 +176,7 @@ function HomePageInner() {
     setSelectedConversion(`${selectedFrom}-${format}`)
     setQueueItems(prev => prev.map(item =>
       item.status === 'queued'
-        ? { ...item, toFormat: format, points: getConversionPoints(item.fromFormat, format) }
+        ? { ...item, toFormat: format, points: 0 }
         : item
     ))
   }, [selectedFrom])
@@ -191,7 +191,7 @@ function HomePageInner() {
         fileType: ext,
         fromFormat: ext,
         toFormat: selectedTo,
-        points: getConversionPoints(ext, selectedTo),
+        points: 0,
         status: 'queued' as const,
         sourceFile: file,
       }
@@ -277,11 +277,6 @@ function HomePageInner() {
       toast.info('暂无排队中的文件')
       return
     }
-    const totalCost = queued.reduce((s, i) => s + i.points, 0)
-    if (user.points < totalCost) {
-      toast.error(`积分不足：需要 ${totalCost}，当前 ${user.points}`)
-      return
-    }
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission().catch(() => {})
     }
@@ -320,20 +315,6 @@ function HomePageInner() {
           },
         })
 
-        try {
-          await fetch('/api/points/charge', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              cost: item.points,
-              from: item.fromFormat,
-              to: item.toFormat,
-              fileName: item.fileName,
-            }),
-          })
-          refreshUser()
-        } catch {}
-
         await putResultBlob(item.id, blob).catch(() => {})
         setQueueItems(prev => prev.map(i =>
           i.id === item.id
@@ -365,7 +346,7 @@ function HomePageInner() {
         toast.error('转换失败', { description: message })
       }
     }
-  }, [user, queueItems, setLoginDialogOpen, refreshUser])
+  }, [user, queueItems, setLoginDialogOpen])
 
   const handleRemoveItem = useCallback((id: string) => {
     void deleteResultBlob(id).catch(() => {})

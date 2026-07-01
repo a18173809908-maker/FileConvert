@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Header } from '@/components/header'
-import { CONVERSION_CATEGORIES, POINTS_CONFIG, isConversionSupported } from '@/lib/conversion-config'
+import { CONVERSION_CATEGORIES, isConversionSupported } from '@/lib/conversion-config'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
@@ -66,14 +66,14 @@ export default function FormatsPage() {
           </div>
 
           <div className="mt-8 rounded-lg border border-border bg-card p-6">
-            <h2 className="mb-4 text-lg font-semibold">积分消耗规则</h2>
+            <h2 className="mb-4 text-lg font-semibold">免费转换说明</h2>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>PDF 转换：每次消耗 2-5 积分</p>
-              <p>图片转换：每次消耗 1 积分</p>
-              <p>文档转换：每次消耗 2 积分</p>
-              <p>电子书转换：每次消耗 5 积分</p>
+              <p>PDF 转换：不消耗积分</p>
+              <p>图片转换：不消耗积分</p>
+              <p>文档转换：不消耗积分</p>
+              <p>电子书转换：不消耗积分</p>
               <p className="mt-4 text-primary">
-                注册即送 {POINTS_CONFIG.register} 积分，每日登录可领取 {POINTS_CONFIG.dailyLogin} 积分
+                登录后即可使用当前已支持的转换功能
               </p>
             </div>
           </div>

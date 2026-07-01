@@ -110,8 +110,6 @@ export function ConversionQueue({
   const completedCount = items.filter(i => i.status === 'completed').length
   const convertingCount = items.filter(i => i.status === 'converting').length
   const queuedCount = items.filter(i => i.status === 'queued').length
-  const totalPoints = items.reduce((sum, item) => sum + item.points, 0)
-
   return (
     <div className="rounded-lg border border-border bg-card">
       {/* Header */}
@@ -143,7 +141,7 @@ export function ConversionQueue({
         <span>文件</span>
         <span>大小</span>
         <span>方向</span>
-        <span>消耗</span>
+        <span>积分</span>
         <span>状态</span>
         <span></span>
       </div>
@@ -277,7 +275,7 @@ export function ConversionQueue({
             <span>·</span>
             <span>{queuedCount} 排队中</span>
             <span>·</span>
-            <span>预计消耗 <span className="text-primary font-medium">{totalPoints}</span> 积分</span>
+            <span>免费转换</span>
           </div>
           <button
             onClick={onAddFiles}

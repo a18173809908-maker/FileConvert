@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Header } from '@/components/header'
 import { Shield, Clock, CreditCard, FileText, Upload, HelpCircle, Mail, AlertCircle } from 'lucide-react'
-import { FILE_SIZE_LIMITS, POINTS_CONFIG } from '@/lib/conversion-config'
+import { FILE_SIZE_LIMITS } from '@/lib/conversion-config'
 
 export const metadata: Metadata = {
   title: '帮助中心 - 文件转换常见问题',
@@ -30,7 +30,7 @@ const faqItems = [
   {
     icon: CreditCard,
     question: '收费吗？',
-    answer: `完全免费。注册即送 ${POINTS_CONFIG.register} 积分，每日签到送 ${POINTS_CONFIG.dailyLogin} 积分（连续签到额外奖励，第 7 天最高 +15），邀请好友双方各得 ${POINTS_CONFIG.invite} 积分。积分仅用于消耗记账，目前不收钱。`,
+    answer: '完全免费。文件转换不再消耗积分，登录后即可使用支持的转换功能。',
   },
   {
     icon: FileText,
@@ -109,7 +109,7 @@ export default function HelpPage() {
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">3</span>
                 <div>
                   <h3 className="font-medium">开始转换</h3>
-                  <p className="text-sm text-muted-foreground">点击队列里的"转换"按钮。服务端转换会自动扣减积分</p>
+                  <p className="text-sm text-muted-foreground">点击队列里的"转换"按钮。转换完成后即可下载结果</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
