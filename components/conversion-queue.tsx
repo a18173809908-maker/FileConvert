@@ -4,7 +4,7 @@ import { Archive, Download, Play, Trash2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { QueueItem, formatFileSize, isHeavyConversion } from '@/lib/conversion-config'
 
-const queueGridClass = "grid grid-cols-[minmax(220px,1fr)_90px_130px_80px_240px_90px] gap-4"
+const queueGridClass = "grid grid-cols-[minmax(220px,1fr)_90px_130px_240px_90px] gap-4"
 
 interface ConversionQueueProps {
   items: QueueItem[]
@@ -141,7 +141,6 @@ export function ConversionQueue({
         <span>文件</span>
         <span>大小</span>
         <span>方向</span>
-        <span>积分</span>
         <span>状态</span>
         <span></span>
       </div>
@@ -182,14 +181,6 @@ export function ConversionQueue({
                 <span className="rounded border border-primary bg-primary/10 px-1.5 py-0.5 text-xs uppercase text-primary">
                   {item.toFormat}
                 </span>
-              </div>
-
-              {/* Points */}
-              <div className="flex items-center gap-1">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white">
-                  ★
-                </span>
-                <span className="text-sm">{item.points}</span>
               </div>
 
               {/* Status */}

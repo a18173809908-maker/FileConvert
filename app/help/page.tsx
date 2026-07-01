@@ -5,7 +5,7 @@ import { FILE_SIZE_LIMITS } from '@/lib/conversion-config'
 
 export const metadata: Metadata = {
   title: '帮助中心 - 文件转换常见问题',
-  description: '了解文件侠在线文件转换的安全性、文件大小限制、积分规则、支持格式和转换失败处理方式。',
+  description: '了解文件侠在线文件转换的安全性、文件大小限制、支持格式和转换失败处理方式。',
   alternates: {
     canonical: '/help',
   },
@@ -30,7 +30,7 @@ const faqItems = [
   {
     icon: CreditCard,
     question: '收费吗？',
-    answer: '完全免费。文件转换不再消耗积分，登录后即可使用支持的转换功能。',
+    answer: '完全免费。登录后即可使用当前已支持的转换功能。',
   },
   {
     icon: FileText,

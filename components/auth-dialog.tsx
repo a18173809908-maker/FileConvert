@@ -59,7 +59,7 @@ export function AuthDialog() {
       if (mode === 'register' && typeof window !== 'undefined') {
         window.localStorage.removeItem('fc:pendingInvite')
       }
-      toast.success(mode === 'login' ? '登录成功' : '注册成功，已赠送 200 积分')
+      toast.success(mode === 'login' ? '登录成功' : '注册成功')
       setLoginDialogOpen(false)
       reset()
     } catch (err) {
@@ -87,7 +87,7 @@ export function AuthDialog() {
         <DialogHeader>
           <DialogTitle>{mode === 'login' ? '登录' : '注册'}</DialogTitle>
           <DialogDescription>
-            {mode === 'login' ? '使用邮箱、微信或 QQ 登录' : '注册即赠送 200 积分'}
+            {mode === 'login' ? '使用邮箱、微信或 QQ 登录' : '创建账号后即可开始转换'}
           </DialogDescription>
         </DialogHeader>
 
@@ -166,7 +166,7 @@ export function AuthDialog() {
                   maxLength={16}
                   value={inviteCode}
                   onChange={e => setInviteCode(e.target.value)}
-                  placeholder="填写后双方都获得奖励"
+                  placeholder="可填写邀请人提供的邀请码"
                   className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
                 />
               </div>

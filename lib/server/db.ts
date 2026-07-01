@@ -32,7 +32,7 @@ function migrate(d: Database.Database) {
       qq_openid       TEXT UNIQUE,
       nickname        TEXT NOT NULL,
       avatar_url      TEXT,
-      points          INTEGER NOT NULL DEFAULT 20,
+      points          INTEGER NOT NULL DEFAULT 0,
       consecutive_days INTEGER NOT NULL DEFAULT 0,
       last_sign_date  TEXT,
       invite_code     TEXT UNIQUE NOT NULL,
@@ -121,34 +121,11 @@ export function createUser(p: CreateUserParams): UserRow {
     p.qq_openid || null,
     p.nickname,
     p.avatar_url || null,
-    p.initial_points ?? 20,
+    p.initial_points ?? 0,
     p.invite_code,
     p.invited_by ?? null,
   )
   return getUserById(Number(info.lastInsertRowid))!
-}
-
-// ---------- 积分变动（原子事务） ----------
-
-export interface AddPointsResult {
-  newBalance: number
-  logId: number
-}
-
-export function addPoints(userId: number, delta: number, reason: string, metadata?: object): AddPointsResult {
-  return getDb().transaction(() => {
-    const user = getUserById(userId)
-    if (!user) throw new Error('USER_NOT_FOUND')
-    const newBalance = user.points + delta
-    if (newBalance < 0) throw new Error('INSUFFICIENT_POINTS')
-
-    getDb().prepare('UPDATE users SET points = ? WHERE id = ?').run(newBalance, userId)
-    const info = getDb().prepare(
-      'INSERT INTO points_logs (user_id, delta, balance, reason, metadata) VALUES (?, ?, ?, ?, ?)'
-    ).run(userId, delta, newBalance, reason, metadata ? JSON.stringify(metadata) : null)
-
-    return { newBalance, logId: Number(info.lastInsertRowid) }
-  })()
 }
 
 export function updateUserField(userId: number, patch: Partial<Pick<UserRow, 'consecutive_days' | 'last_sign_date' | 'nickname' | 'avatar_url'>>) {

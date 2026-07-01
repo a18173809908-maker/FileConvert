@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FileText, LogOut, Shield } from 'lucide-react'
+import { LogOut, Shield } from 'lucide-react'
 import { useApp } from '@/lib/store'
 
 export function Header() {
@@ -32,15 +32,6 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Points */}
-        <div className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5">
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white">
-            <FileText className="h-3 w-3" />
-          </div>
-          <span className="text-sm font-medium">{user?.points ?? 0}</span>
-          <span className="text-xs text-muted-foreground">+</span>
-        </div>
-
         {loadingUser ? (
           <div className="h-7 w-16 animate-pulse rounded-md bg-muted" />
         ) : user ? (

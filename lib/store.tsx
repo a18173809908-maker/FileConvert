@@ -21,9 +21,6 @@ export interface PublicUser {
   email: string | null
   hasWechat: boolean
   hasQQ: boolean
-  points: number
-  consecutiveDays: number
-  hasSignedToday: boolean
   inviteCode: string
   isAdmin: boolean
 }

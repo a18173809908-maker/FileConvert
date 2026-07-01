@@ -66,12 +66,10 @@ export default function FormatsPage() {
           </div>
 
           <div className="mt-8 rounded-lg border border-border bg-card p-6">
-            <h2 className="mb-4 text-lg font-semibold">免费转换说明</h2>
+            <h2 className="mb-4 text-lg font-semibold">使用说明</h2>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>PDF 转换：不消耗积分</p>
-              <p>图片转换：不消耗积分</p>
-              <p>文档转换：不消耗积分</p>
-              <p>电子书转换：不消耗积分</p>
+              <p>选择需要的转换方向后上传文件，即可在转换队列中处理。</p>
+              <p>部分复杂格式需要更长处理时间，完成后可直接下载结果。</p>
               <p className="mt-4 text-primary">
                 登录后即可使用当前已支持的转换功能
               </p>

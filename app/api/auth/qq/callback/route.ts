@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getQQConfig, exchangeQQCode, fetchQQOpenId, fetchQQUserInfo } from '@/lib/server/oauth'
 import { getSession } from '@/lib/server/auth'
-import { createUser, getUserByQQ, generateUniqueInviteCode, addPoints } from '@/lib/server/db'
+import { createUser, getUserByQQ, generateUniqueInviteCode } from '@/lib/server/db'
 
 export const runtime = 'nodejs'
 
@@ -34,9 +34,7 @@ export async function GET(req: NextRequest) {
         nickname: info.nickname || `QQ用户${openid.slice(-4)}`,
         avatar_url: info.figureurl_qq_2 || info.figureurl_qq_1,
         invite_code: generateUniqueInviteCode(),
-        initial_points: 20,
       })
-      addPoints(user.id, 0, 'register_bonus_qq', { initial: 20 })
     }
 
     session.userId = user.id

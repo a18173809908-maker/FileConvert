@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getWechatConfig, exchangeWechatCode, fetchWechatUserInfo } from '@/lib/server/oauth'
 import { getSession } from '@/lib/server/auth'
-import { createUser, getUserByWechat, generateUniqueInviteCode, addPoints } from '@/lib/server/db'
+import { createUser, getUserByWechat, generateUniqueInviteCode } from '@/lib/server/db'
 
 export const runtime = 'nodejs'
 
@@ -32,9 +32,7 @@ export async function GET(req: NextRequest) {
         nickname: info.nickname || `微信用户${token.openid.slice(-4)}`,
         avatar_url: info.headimgurl,
         invite_code: generateUniqueInviteCode(),
-        initial_points: 20,
       })
-      addPoints(user.id, 0, 'register_bonus_wechat', { initial: 20 })
     }
 
     session.userId = user.id

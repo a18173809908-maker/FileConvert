@@ -112,7 +112,7 @@ function HomePageInner() {
       // 未登录且有邀请码 → 自动弹注册框
       if (!user) {
         setLoginDialogOpen(true)
-        toast.info('邀请码已自动填入，注册后双方各得奖励')
+        toast.info('邀请码已自动填入')
       }
     }
   }, [searchParams, refreshUser, user, setLoginDialogOpen])
@@ -176,7 +176,7 @@ function HomePageInner() {
     setSelectedConversion(`${selectedFrom}-${format}`)
     setQueueItems(prev => prev.map(item =>
       item.status === 'queued'
-        ? { ...item, toFormat: format, points: 0 }
+        ? { ...item, toFormat: format }
         : item
     ))
   }, [selectedFrom])
@@ -191,7 +191,6 @@ function HomePageInner() {
         fileType: ext,
         fromFormat: ext,
         toFormat: selectedTo,
-        points: 0,
         status: 'queued' as const,
         sourceFile: file,
       }
@@ -267,7 +266,6 @@ function HomePageInner() {
       return
     }
 
-    // 积分预检
     const queued = queueItems.filter(i => i.status === 'queued')
     if (queueItems.some(i => i.status === 'converting')) {
       toast.info('已有文件正在转换，请稍候')

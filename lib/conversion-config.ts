@@ -2,7 +2,6 @@
 export interface ConversionType {
   from: string
   to: string
-  points: number
   label: string
 }
 
@@ -12,15 +11,6 @@ export interface ConversionCategory {
   name: string
   icon: string
   conversions: ConversionType[]
-}
-
-// 积分规则配置
-export const POINTS_CONFIG = {
-  register: 200,
-  dailyLogin: 20,
-  dailyRestore: 10,
-  invite: 200,
-  consecutiveBonus: [0, 2, 4, 6, 8, 10, 15], // 连续签到额外奖励
 }
 
 // 文件大小限制 (MB)
@@ -54,24 +44,24 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: 'PDF工具',
     icon: 'file-text',
     conversions: [
-      { from: 'pdf', to: 'docx', points: 5, label: 'PDF → Word' },
-      { from: 'pdf', to: 'xlsx', points: 8, label: 'PDF → Excel' },
-      { from: 'pdf', to: 'pptx', points: 8, label: 'PDF → PPT' },
-      { from: 'docx', to: 'pdf', points: 5, label: 'Word → PDF' },
-      { from: 'xlsx', to: 'pdf', points: 5, label: 'Excel → PDF' },
-      { from: 'pptx', to: 'pdf', points: 5, label: 'PPT → PDF' },
-      { from: 'pdf', to: 'jpg', points: 5, label: 'PDF → JPG' },
-      { from: 'pdf', to: 'png', points: 5, label: 'PDF → PNG' },
-      { from: 'jpg', to: 'pdf', points: 2, label: 'JPG → PDF' },
-      { from: 'png', to: 'pdf', points: 2, label: 'PNG → PDF' },
-      { from: 'pdf', to: 'txt', points: 5, label: 'PDF → TXT' },
-      { from: 'txt', to: 'pdf', points: 2, label: 'TXT → PDF' },
-      { from: 'pdf', to: 'merge', points: 2, label: 'PDF 合并' },
-      { from: 'pdf', to: 'split', points: 2, label: 'PDF 拆分' },
-      { from: 'pdf', to: 'rotate', points: 1, label: 'PDF 旋转' },
-      { from: 'pdf', to: 'compress', points: 1, label: 'PDF 压缩' },
-      { from: 'pdf', to: 'encrypt', points: 1, label: 'PDF 加密' },
-      { from: 'pdf', to: 'decrypt', points: 1, label: 'PDF 解密' },
+      { from: 'pdf', to: 'docx', label: 'PDF → Word' },
+      { from: 'pdf', to: 'xlsx', label: 'PDF → Excel' },
+      { from: 'pdf', to: 'pptx', label: 'PDF → PPT' },
+      { from: 'docx', to: 'pdf', label: 'Word → PDF' },
+      { from: 'xlsx', to: 'pdf', label: 'Excel → PDF' },
+      { from: 'pptx', to: 'pdf', label: 'PPT → PDF' },
+      { from: 'pdf', to: 'jpg', label: 'PDF → JPG' },
+      { from: 'pdf', to: 'png', label: 'PDF → PNG' },
+      { from: 'jpg', to: 'pdf', label: 'JPG → PDF' },
+      { from: 'png', to: 'pdf', label: 'PNG → PDF' },
+      { from: 'pdf', to: 'txt', label: 'PDF → TXT' },
+      { from: 'txt', to: 'pdf', label: 'TXT → PDF' },
+      { from: 'pdf', to: 'merge', label: 'PDF 合并' },
+      { from: 'pdf', to: 'split', label: 'PDF 拆分' },
+      { from: 'pdf', to: 'rotate', label: 'PDF 旋转' },
+      { from: 'pdf', to: 'compress', label: 'PDF 压缩' },
+      { from: 'pdf', to: 'encrypt', label: 'PDF 加密' },
+      { from: 'pdf', to: 'decrypt', label: 'PDF 解密' },
     ]
   },
   {
@@ -79,18 +69,18 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: '图片转换',
     icon: 'image',
     conversions: [
-      { from: 'jpg', to: 'png', points: 1, label: 'JPG → PNG' },
-      { from: 'png', to: 'jpg', points: 1, label: 'PNG → JPG' },
-      { from: 'jpg', to: 'webp', points: 1, label: 'JPG → WEBP' },
-      { from: 'webp', to: 'jpg', points: 1, label: 'WEBP → JPG' },
-      { from: 'png', to: 'webp', points: 1, label: 'PNG → WEBP' },
-      { from: 'webp', to: 'png', points: 1, label: 'WEBP → PNG' },
-      { from: 'bmp', to: 'jpg', points: 1, label: 'BMP → JPG' },
-      { from: 'bmp', to: 'png', points: 1, label: 'BMP → PNG' },
-      { from: 'gif', to: 'jpg', points: 1, label: 'GIF → JPG' },
-      { from: 'gif', to: 'png', points: 1, label: 'GIF → PNG' },
-      { from: 'heic', to: 'jpg', points: 2, label: 'HEIC → JPG' },
-      { from: 'heic', to: 'png', points: 2, label: 'HEIC → PNG' },
+      { from: 'jpg', to: 'png', label: 'JPG → PNG' },
+      { from: 'png', to: 'jpg', label: 'PNG → JPG' },
+      { from: 'jpg', to: 'webp', label: 'JPG → WEBP' },
+      { from: 'webp', to: 'jpg', label: 'WEBP → JPG' },
+      { from: 'png', to: 'webp', label: 'PNG → WEBP' },
+      { from: 'webp', to: 'png', label: 'WEBP → PNG' },
+      { from: 'bmp', to: 'jpg', label: 'BMP → JPG' },
+      { from: 'bmp', to: 'png', label: 'BMP → PNG' },
+      { from: 'gif', to: 'jpg', label: 'GIF → JPG' },
+      { from: 'gif', to: 'png', label: 'GIF → PNG' },
+      { from: 'heic', to: 'jpg', label: 'HEIC → JPG' },
+      { from: 'heic', to: 'png', label: 'HEIC → PNG' },
     ]
   },
   {
@@ -98,11 +88,11 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: '图片工具',
     icon: 'settings',
     conversions: [
-      { from: 'image', to: 'compress', points: 1, label: '图片压缩' },
-      { from: 'image', to: 'resize', points: 1, label: '图片尺寸调整' },
-      { from: 'image', to: 'crop', points: 1, label: '图片裁剪' },
-      { from: 'image', to: 'rotate', points: 1, label: '图片旋转' },
-      { from: 'image', to: 'watermark', points: 0, label: '图片加水印' },
+      { from: 'image', to: 'compress', label: '图片压缩' },
+      { from: 'image', to: 'resize', label: '图片尺寸调整' },
+      { from: 'image', to: 'crop', label: '图片裁剪' },
+      { from: 'image', to: 'rotate', label: '图片旋转' },
+      { from: 'image', to: 'watermark', label: '图片加水印' },
     ]
   },
   {
@@ -110,8 +100,8 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: '表格工具',
     icon: 'table',
     conversions: [
-      { from: 'csv', to: 'xlsx', points: 1, label: 'CSV → Excel' },
-      { from: 'xlsx', to: 'csv', points: 1, label: 'Excel → CSV' },
+      { from: 'csv', to: 'xlsx', label: 'CSV → Excel' },
+      { from: 'xlsx', to: 'csv', label: 'Excel → CSV' },
     ]
   },
   {
@@ -119,8 +109,8 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: 'Markdown工具',
     icon: 'file-code',
     conversions: [
-      { from: 'md', to: 'html', points: 1, label: 'Markdown → HTML' },
-      { from: 'md', to: 'pdf', points: 3, label: 'Markdown → PDF' },
+      { from: 'md', to: 'html', label: 'Markdown → HTML' },
+      { from: 'md', to: 'pdf', label: 'Markdown → PDF' },
     ]
   },
   {
@@ -128,9 +118,9 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: '文档工具',
     icon: 'file',
     conversions: [
-      { from: 'doc', to: 'docx', points: 2, label: 'DOC → DOCX' },
-      { from: 'docx', to: 'doc', points: 2, label: 'DOCX → DOC' },
-      { from: 'html', to: 'pdf', points: 2, label: 'HTML → PDF' },
+      { from: 'doc', to: 'docx', label: 'DOC → DOCX' },
+      { from: 'docx', to: 'doc', label: 'DOCX → DOC' },
+      { from: 'html', to: 'pdf', label: 'HTML → PDF' },
     ]
   },
   {
@@ -138,8 +128,8 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: 'SVG工具',
     icon: 'pen-tool',
     conversions: [
-      { from: 'svg', to: 'png', points: 2, label: 'SVG → PNG' },
-      { from: 'svg', to: 'jpg', points: 2, label: 'SVG → JPG' },
+      { from: 'svg', to: 'png', label: 'SVG → PNG' },
+      { from: 'svg', to: 'jpg', label: 'SVG → JPG' },
     ]
   },
   {
@@ -147,7 +137,7 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: '电子书工具',
     icon: 'book-open',
     conversions: [
-      { from: 'epub', to: 'pdf', points: 5, label: 'EPUB → PDF' },
+      { from: 'epub', to: 'pdf', label: 'EPUB → PDF' },
     ]
   },
   {
@@ -155,7 +145,7 @@ export const CONVERSION_CATEGORIES: ConversionCategory[] = [
     name: '开发者工具',
     icon: 'code',
     conversions: [
-      { from: 'json', to: 'tools', points: 0, label: 'JSON 格式化 / 校验' },
+      { from: 'json', to: 'tools', label: 'JSON 格式化 / 校验' },
     ]
   },
 ]
@@ -177,7 +167,6 @@ export interface QueueItem {
   fileType: string
   fromFormat: string
   toFormat: string
-  points: number
   status: FileStatus
   progress?: number
   downloadUrl?: string
@@ -272,17 +261,6 @@ export function isConversionSupported(from: string, to: string): boolean {
   return canConvertClient(from, to)
       || canConvertServer(from, to)
       || matchPair(CLIENT_TOOL_PAIRS, from, to)
-}
-
-// 根据文件扩展名获取积分消耗
-export function getConversionPoints(from: string, to: string): number {
-  for (const category of CONVERSION_CATEGORIES) {
-    const conversion = category.conversions.find(
-      c => c.from.toLowerCase() === from.toLowerCase() && c.to.toLowerCase() === to.toLowerCase()
-    )
-    if (conversion) return conversion.points
-  }
-  return 1 // 默认1积分
 }
 
 // 格式化文件大小

@@ -72,9 +72,6 @@ export interface PublicUser {
   email: string | null
   hasWechat: boolean
   hasQQ: boolean
-  points: number
-  consecutiveDays: number
-  hasSignedToday: boolean
   inviteCode: string
   isAdmin: boolean
 }
@@ -101,7 +98,6 @@ export function isAdminUser(u: Pick<UserRow, 'id' | 'email'> | null): boolean {
 }
 
 export function toPublicUser(u: UserRow): PublicUser {
-  const today = new Date().toISOString().slice(0, 10)
   return {
     id: u.id,
     nickname: u.nickname,
@@ -109,9 +105,6 @@ export function toPublicUser(u: UserRow): PublicUser {
     email: u.email,
     hasWechat: !!u.wechat_openid,
     hasQQ: !!u.qq_openid,
-    points: u.points,
-    consecutiveDays: u.consecutive_days,
-    hasSignedToday: u.last_sign_date === today,
     inviteCode: u.invite_code,
     isAdmin: isAdminUser(u),
   }
