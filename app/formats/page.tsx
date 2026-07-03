@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Header } from '@/components/header'
 import { CONVERSION_CATEGORIES, isConversionSupported } from '@/lib/conversion-config'
 import Link from 'next/link'
+import { breadcrumbJsonLd, itemListJsonLd, jsonLdScript } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: '格式中心 - 支持的文件转换格式',
@@ -17,9 +18,30 @@ export const metadata: Metadata = {
 }
 
 export default function FormatsPage() {
+  const supportedConversions = CONVERSION_CATEGORIES.flatMap(category =>
+    category.conversions
+      .filter(conv => isConversionSupported(conv.from, conv.to))
+      .map(conv => ({
+        name: conv.label,
+        path: `/?conversion=${conv.from}-${conv.to}`,
+        description: `${category.name}：${conv.label}`,
+      })),
+  )
+  const structuredData = [
+    breadcrumbJsonLd([
+      { name: '首页', path: '/' },
+      { name: '格式中心', path: '/formats' },
+    ]),
+    itemListJsonLd('文件侠支持的文件转换格式', supportedConversions),
+  ]
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdScript(structuredData)}
+      />
       <main className="flex-1 p-6">
         <div className="mx-auto max-w-4xl">
           <div className="mb-8">

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Header } from '@/components/header'
 import { Shield, Clock, CreditCard, FileText, Upload, HelpCircle, Mail, AlertCircle } from 'lucide-react'
 import { FILE_SIZE_LIMITS } from '@/lib/conversion-config'
+import { breadcrumbJsonLd, faqJsonLd, jsonLdScript } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: '帮助中心 - 文件转换常见问题',
@@ -55,9 +56,21 @@ const faqItems = [
 ]
 
 export default function HelpPage() {
+  const structuredData = [
+    breadcrumbJsonLd([
+      { name: '首页', path: '/' },
+      { name: '帮助中心', path: '/help' },
+    ]),
+    faqJsonLd(faqItems.map(item => ({ question: item.question, answer: item.answer }))),
+  ]
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdScript(structuredData)}
+      />
       <main className="flex-1 p-6">
         <div className="mx-auto max-w-4xl">
           <div className="mb-8">

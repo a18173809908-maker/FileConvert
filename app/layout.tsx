@@ -6,7 +6,16 @@ import { AuthDialog } from '@/components/auth-dialog'
 import { BrowserNotice } from '@/components/browser-notice'
 import { SiteFooter } from '@/components/site-footer'
 import { Toaster } from '@/components/ui/sonner'
-import { SEO_KEYWORDS, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/seo'
+import {
+  SEO_KEYWORDS,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SITE_URL,
+  jsonLdScript,
+  webApplicationJsonLd,
+  websiteJsonLd,
+} from '@/lib/seo'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -16,12 +25,16 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   applicationName: SITE_NAME,
   title: {
-    default: '文件侠 - 免费在线文件转换工具',
+    default: `${SITE_NAME} - ${SITE_TAGLINE}`,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   keywords: SEO_KEYWORDS,
-  generator: 'v0.app',
+  authors: [{ name: 'AIBoxPro', url: 'https://www.aiboxpro.cn/' }],
+  creator: 'AIBoxPro',
+  publisher: 'AIBoxPro',
+  category: 'technology',
+  referrer: 'origin-when-cross-origin',
   alternates: {
     canonical: '/',
   },
@@ -30,17 +43,24 @@ export const metadata: Metadata = {
     locale: 'zh_CN',
     url: '/',
     siteName: SITE_NAME,
-    title: '文件侠 - 免费在线文件转换工具',
+    title: `${SITE_NAME} - ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
   },
   twitter: {
     card: 'summary',
-    title: '文件侠 - 免费在线文件转换工具',
+    title: `${SITE_NAME} - ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
   icons: {
     icon: [
@@ -61,36 +81,6 @@ export const metadata: Metadata = {
   },
 }
 
-const structuredData = {
-  '@context': 'https://schema.org',
-  '@type': 'WebApplication',
-  name: SITE_NAME,
-  url: SITE_URL,
-  applicationCategory: 'UtilitiesApplication',
-  operatingSystem: 'Web',
-  description: SITE_DESCRIPTION,
-  offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'CNY',
-  },
-  featureList: [
-    'PDF 转 Word',
-    'Word 转 PDF',
-    'PDF 转 Excel',
-    'PDF 转 PPT',
-    '图片格式转换',
-    'Markdown 转 HTML/PDF',
-    'CSV 与 Excel 互转',
-    'PDF 合并、拆分、旋转、压缩、加密、解密',
-  ],
-  publisher: {
-    '@type': 'Organization',
-    name: 'AIBoxPro',
-    url: 'https://www.aiboxpro.cn/',
-  },
-}
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -101,7 +91,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          dangerouslySetInnerHTML={jsonLdScript([websiteJsonLd, webApplicationJsonLd])}
         />
         <AppProvider>
           <BrowserNotice />

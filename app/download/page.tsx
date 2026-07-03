@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowRight, Download, ExternalLink, FolderOpen } from 'lucide-react'
 import { Header } from '@/components/header'
 import { downloadTools, getDownloadCategories } from '@/lib/download-tools'
+import { breadcrumbJsonLd, itemListJsonLd, jsonLdScript, SITE_URL } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: '应用下载 - 免费开源工具合集',
@@ -19,10 +20,36 @@ export const metadata: Metadata = {
 
 export default function DownloadPage() {
   const categories = getDownloadCategories()
+  const structuredData = [
+    breadcrumbJsonLd([
+      { name: '首页', path: '/' },
+      { name: '应用下载', path: '/download' },
+    ]),
+    {
+      '@context': 'https://schema.org' as const,
+      '@type': 'CollectionPage',
+      name: '免费开源工具下载',
+      description: '常用免费和开源工具下载列表，附软件说明、官网入口和网盘下载地址。',
+      url: `${SITE_URL}/download`,
+      inLanguage: 'zh-CN',
+    },
+    itemListJsonLd(
+      '免费开源工具下载列表',
+      downloadTools.map(tool => ({
+        name: tool.name,
+        path: `/download/${tool.slug}`,
+        description: tool.summary,
+      })),
+    ),
+  ]
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdScript(structuredData)}
+      />
       <main className="flex-1 p-6">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

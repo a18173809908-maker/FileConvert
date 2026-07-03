@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, Download, ExternalLink, Github, HardDrive } from 'lucide-react'
 import { Header } from '@/components/header'
 import { downloadTools, getDownloadTool } from '@/lib/download-tools'
+import { breadcrumbJsonLd, jsonLdScript, softwareApplicationJsonLd } from '@/lib/seo'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -36,10 +37,30 @@ export default async function DownloadDetailPage({ params }: PageProps) {
   const { slug } = await params
   const tool = getDownloadTool(slug)
   if (!tool) notFound()
+  const structuredData = [
+    breadcrumbJsonLd([
+      { name: '首页', path: '/' },
+      { name: '应用下载', path: '/download' },
+      { name: tool.name, path: `/download/${tool.slug}` },
+    ]),
+    softwareApplicationJsonLd({
+      name: tool.name,
+      description: tool.summary,
+      url: `/download/${tool.slug}`,
+      category: tool.category,
+      operatingSystems: tool.platforms,
+      license: tool.license,
+      homepage: tool.homepage,
+    }),
+  ]
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdScript(structuredData)}
+      />
       <main className="flex-1 p-6">
         <div className="mx-auto max-w-5xl">
           <Link href="/download" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
