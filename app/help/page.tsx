@@ -30,7 +30,7 @@ const faqItems = [
   {
     icon: CreditCard,
     question: '收费吗？',
-    answer: '完全免费。登录后即可使用当前已支持的转换功能。',
+    answer: '完全免费。打开页面即可使用当前已支持的转换功能。',
   },
   {
     icon: FileText,

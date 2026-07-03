@@ -14,7 +14,6 @@ import { PdfToolShortcuts } from '@/components/pdf-tool-shortcuts'
 import { QueueItem, getFileExtension } from '@/lib/conversion-config'
 import { convertFile, canConvert, getConvertedFileName } from '@/lib/convert'
 import { PdfToolId } from '@/lib/pdf-tools'
-import { useApp } from '@/lib/store'
 
 const QUEUE_STORAGE_KEY = 'fileconvert:queue:v1'
 const BLOB_DB_NAME = 'fileconvert-results'
@@ -75,7 +74,6 @@ async function deleteResultBlob(id: string) {
 }
 
 function HomePageInner() {
-  const { user, refreshUser, setLoginDialogOpen } = useApp()
   const searchParams = useSearchParams()
 
   const [selectedConversion, setSelectedConversion] = useState<string | null>('pdf-docx')
@@ -86,7 +84,6 @@ function HomePageInner() {
   const [activePdfTool, setActivePdfTool] = useState<PdfToolId | null>(null)
   const [queueHydrated, setQueueHydrated] = useState(false)
 
-  // 从 URL ?conversion=pdf-docx 读取预设
   useEffect(() => {
     const conv = searchParams.get('conversion')
     if (conv) {
@@ -97,25 +94,7 @@ function HomePageInner() {
         setSelectedTo(to)
       }
     }
-    // OAuth 回跳的成功/失败提示
-    if (searchParams.get('login') === 'success') {
-      toast.success('登录成功')
-      refreshUser()
-    }
-    const err = searchParams.get('login_error')
-    if (err) toast.error(`登录失败：${decodeURIComponent(err)}`)
-
-    // 邀请链接 ?ref=xxx：存到 localStorage，注册时自动带上
-    const ref = searchParams.get('ref')
-    if (ref && typeof window !== 'undefined') {
-      window.localStorage.setItem('fc:pendingInvite', ref.trim().toLowerCase())
-      // 未登录且有邀请码 → 自动弹注册框
-      if (!user) {
-        setLoginDialogOpen(true)
-        toast.info('邀请码已自动填入')
-      }
-    }
-  }, [searchParams, refreshUser, user, setLoginDialogOpen])
+  }, [searchParams])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -259,13 +238,6 @@ function HomePageInner() {
   }, [queueItems, handleDownloadItem])
 
   const handleStartConversion = useCallback(async () => {
-    // 未登录 → 引导登录
-    if (!user) {
-      toast.error('请先登录')
-      setLoginDialogOpen(true)
-      return
-    }
-
     const queued = queueItems.filter(i => i.status === 'queued')
     if (queueItems.some(i => i.status === 'converting')) {
       toast.info('已有文件正在转换，请稍候')
@@ -344,7 +316,7 @@ function HomePageInner() {
         toast.error('转换失败', { description: message })
       }
     }
-  }, [user, queueItems, setLoginDialogOpen])
+  }, [queueItems])
 
   const handleRemoveItem = useCallback((id: string) => {
     void deleteResultBlob(id).catch(() => {})

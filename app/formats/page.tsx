@@ -71,7 +71,7 @@ export default function FormatsPage() {
               <p>选择需要的转换方向后上传文件，即可在转换队列中处理。</p>
               <p>部分复杂格式需要更长处理时间，完成后可直接下载结果。</p>
               <p className="mt-4 text-primary">
-                登录后即可使用当前已支持的转换功能
+                打开页面即可使用当前已支持的转换功能
               </p>
             </div>
           </div>
