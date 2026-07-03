@@ -1,76 +1,110 @@
 import type { Metadata } from 'next'
-import { Header } from '@/components/header'
-import { Globe, Zap, Lock, Smartphone } from 'lucide-react'
 import Link from 'next/link'
+import { ArrowRight, Download, ExternalLink, FolderOpen } from 'lucide-react'
+import { Header } from '@/components/header'
+import { downloadTools, getDownloadCategories } from '@/lib/download-tools'
 
 export const metadata: Metadata = {
-  title: '应用下载 - 浏览器在线使用',
-  description: '文件侠无需下载安装，打开浏览器即可进行 PDF、Word、图片等文件格式转换，手机、平板、电脑都能使用。',
+  title: '应用下载 - 免费开源工具合集',
+  description: '整理常用免费和开源工具下载入口，包含压缩解压、视频处理、录屏直播、文档阅读、截图录屏等软件说明与网盘下载地址。',
   alternates: {
     canonical: '/download',
   },
   openGraph: {
-    title: '应用下载 - 浏览器在线使用',
-    description: '文件侠无需下载安装，浏览器打开即可使用。',
+    title: '应用下载 - 免费开源工具合集',
+    description: '常用免费和开源工具下载列表，附软件说明、官网入口和网盘下载地址。',
     url: '/download',
   },
 }
 
 export default function DownloadPage() {
+  const categories = getDownloadCategories()
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
       <main className="flex-1 p-6">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold">无需下载，浏览器即可使用</h1>
-            <p className="mt-2 text-muted-foreground">
-              文件侠是纯网页应用，打开就能用，不占内存、不留垃圾
-            </p>
-          </div>
-
-          {/* 主卡片 */}
-          <div className="mb-6 rounded-lg border-2 border-primary/30 bg-card p-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <Globe className="h-8 w-8 text-primary" />
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">免费开源工具下载</h1>
+              <p className="mt-2 max-w-2xl text-muted-foreground">
+                挑选常用、口碑稳定的免费或开源工具，提供软件说明、适用场景、官网入口和网盘下载地址。
+              </p>
             </div>
-            <h2 className="mb-2 text-xl font-bold">直接在浏览器使用</h2>
-            <p className="mb-6 text-muted-foreground">
-              所有功能都在网页中提供，无需安装任何客户端
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              去转换台
-            </Link>
-          </div>
-
-          {/* 优势 */}
-          <div className="mb-6 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-border bg-card p-5">
-              <Zap className="mb-2 h-5 w-5 text-primary" />
-              <h3 className="mb-1 font-medium">即开即用</h3>
-              <p className="text-sm text-muted-foreground">不用下载、不用安装、不占硬盘</p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-5">
-              <Lock className="mb-2 h-5 w-5 text-primary" />
-              <h3 className="mb-1 font-medium">隐私安全</h3>
-              <p className="text-sm text-muted-foreground">服务器不保存任何文件，处理完即销毁</p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-5">
-              <Smartphone className="mb-2 h-5 w-5 text-primary" />
-              <h3 className="mb-1 font-medium">多端通用</h3>
-              <p className="text-sm text-muted-foreground">手机、平板、电脑，浏览器都能跑</p>
+            <div className="flex flex-wrap gap-2">
+              {categories.map(category => (
+                <span key={category} className="rounded-md border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+                  {category}
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* 客户端规划（如果未来要做的话） */}
-          <div className="rounded-lg border border-dashed border-border bg-muted/30 p-5 text-sm text-muted-foreground">
-            <p>
-              桌面端 App / 移动端 App 暂未发布。如有强烈需求，欢迎邮件反馈：
-              {' '}<a href="mailto:4514407@qq.com" className="text-primary hover:underline">4514407@qq.com</a>
-            </p>
+          <div className="mb-6 rounded-lg border border-border bg-card p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <FolderOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-semibold">下载说明</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  优先收录官网可验证的软件。网盘链接适合国内网络下载不稳定时备用；如果某个工具暂未配置网盘地址，详情页会显示待补充。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {downloadTools.map(tool => (
+              <article key={tool.slug} className="rounded-lg border border-border bg-card p-5">
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold">{tool.name}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{tool.category}</p>
+                  </div>
+                  <span className="shrink-0 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                    {tool.license}
+                  </span>
+                </div>
+
+                <p className="min-h-12 text-sm leading-6 text-muted-foreground">{tool.summary}</p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {tool.platforms.map(platform => (
+                    <span key={platform} className="rounded border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                      {platform}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-5 flex items-center gap-2">
+                  <Link
+                    href={`/download/${tool.slug}`}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    查看详情
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <a
+                    href={tool.homepage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    title="打开官网"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                  <Link
+                    href={`/download/${tool.slug}#cloud-download`}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    title="网盘下载"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Link>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </main>
