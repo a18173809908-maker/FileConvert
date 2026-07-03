@@ -108,6 +108,35 @@ export const downloadTools: DownloadTool[] = [
       'ShareX 不只是截图工具，也能录屏、识别区域、加标注并自动保存。适合经常做教程、反馈问题和整理素材的人。',
     useCases: ['截图标注', '录制短 GIF', '批量保存截图素材'],
   },
+  {
+    slug: 'iptvnator',
+    name: 'IPTVnator',
+    summary: '跨平台 IPTV 播放器，适合在电脑上导入 M3U/M3U8 直播源并管理频道列表。',
+    category: '影音播放',
+    license: '开源',
+    platforms: ['Windows', 'macOS', 'Linux'],
+    homepage: 'https://github.com/4gray/iptvnator/releases/latest',
+    sourceUrl: 'https://github.com/4gray/iptvnator',
+    cloudLinks: [],
+    highlights: ['支持 M3U/M3U8 播放列表', '支持频道分组、搜索和收藏', '可配置 EPG 节目单'],
+    description:
+      'IPTVnator 是面向桌面端的 IPTV 播放器，适合把公开 M3U 直播源导入后按频道列表观看。相比 VLC，它更适合长期管理频道、分组和节目单。',
+    useCases: ['在电脑上观看 M3U 直播源', '管理 CCTV 或中文频道列表', '给直播源配置 EPG 节目单'],
+  },
+  {
+    slug: 'tivimate',
+    name: 'TiviMate',
+    summary: 'Android TV / 电视盒子上常用的 IPTV 播放器，适合遥控器操作和长期观看直播源。',
+    category: '影音播放',
+    license: '免费',
+    platforms: ['Android TV', 'Google TV'],
+    homepage: 'https://tivimate.com/',
+    cloudLinks: [],
+    highlights: ['适合电视和盒子遥控器操作', '支持 M3U 播放列表', '频道管理体验较好'],
+    description:
+      'TiviMate 是偏电视端体验的 IPTV 播放器，适合在 Android TV、Google TV 或电视盒子上添加 M3U 直播源。它不是开源软件，基础功能可用，部分高级能力需要付费解锁。',
+    useCases: ['在电视盒子上添加 IPTV 源', '用遥控器浏览频道列表', '长期观看和管理直播频道'],
+  },
 ]
 
 export function getDownloadTool(slug: string): DownloadTool | undefined {
